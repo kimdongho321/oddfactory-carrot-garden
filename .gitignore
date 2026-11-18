@@ -1,0 +1,37 @@
+# 허용 목록 방식: 구동·빌드에 필요한 것만 올린다
+*
+!.gitignore
+!AGENTS.md
+!기획서.md
+!README.md
+# 확정된 그림만 개별 허용(참고 사진·후보·중간물·영상은 제외)
+!art/
+art/*
+!art/final/
+!art/final/**
+!art/seq.json
+# 작업 도구
+!tools/
+tools/*
+!tools/*.py
+# Android 앱(소스·빌드 설정만)
+!android/
+android/*
+!android/settings.gradle
+!android/build.gradle
+!android/gradle.properties
+!android/gradlew
+!android/gradlew.bat
+!android/gradle/
+!android/gradle/**
+!android/app/
+android/app/*
+!android/app/build.gradle
+!android/app/proguard-rules.pro
+!android/app/src/
+!android/app/src/**
+# 서명 키·로컬 설정은 어떤 경우에도 제외
+*.p12
+*.jks
+*.keystore
+local.properties
