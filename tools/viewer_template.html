@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>캬롯 모션 보기</title>
+<style>
+:root{--bg:#fff7ec;--card:#fff;--ink:#3a2418;--muted:#7a5a48;--line:#3a2418;--acc:#ffb347}
+@media (prefers-color-scheme:dark){:root{--bg:#1e1712;--card:#2a201a;--ink:#f6e7da;--muted:#c9ad98;--line:#8a6a55;--acc:#c97a2a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,"Malgun Gothic",sans-serif;padding:16px}
+main{max-width:980px;margin:0 auto;display:grid;gap:16px}
+h1{font-size:22px;margin:0}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tabs button,.ctl button{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--acc)}
+.stage{background:var(--card);border:2px solid var(--line);border-radius:14px;display:grid;place-items:center;padding:12px}
+.stage img{width:min(100%,512px);aspect-ratio:1;image-rendering:pixelated;background:#fff;border-radius:8px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctl label{display:flex;gap:6px;align-items:center;color:var(--muted)}
+.strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.strip img{width:92px;height:92px;image-rendering:pixelated;background:#fff;border:2px solid transparent;border-radius:6px;cursor:pointer;flex:none}
+.strip img.on{border-color:var(--acc)}
+#info{color:var(--muted);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<main>
+<h1>캬롯 모션 보기</h1>
+<div class="tabs" id="tabs"></div>
+<div class="stage"><img id="view" alt="현재 프레임"></div>
+<div class="ctl">
+  <button id="play" type="button">⏸ 멈춤</button>
+  <button id="prev" type="button">◀ 이전</button>
+  <button id="next" type="button">다음 ▶</button>
+  <label>속도 <input id="speed" type="range" min="0.25" max="2" step="0.25" value="1"> <span id="sv">1x</span></label>
+  <span id="info"></span>
+</div>
+<div class="strip" id="strip"></div>
+</main>
+<script>
+const DATA = __DATA__;
+let m = 0, f = 0, playing = true, timer = null, speed = 1;
+const $ = id => document.getElementById(id);
+function show(){
+  const fr = DATA[m].frames[f];
+  $('view').src = fr.src;
+  $('info').textContent = `${DATA[m].title} · ${f+1}/${DATA[m].frames.length} · ${fr.name} · ${fr.ms}ms`;
+  [...$('strip').children].forEach((el,i)=>el.classList.toggle('on', i===f));
+}
+function tick(){
+  clearTimeout(timer);
+  if(!playing) return;
+  timer = setTimeout(()=>{ f = (f+1) % DATA[m].frames.length; show(); tick(); }, DATA[m].frames[f].ms / speed);
+}
+function pick(i){
+  m = i; f = 0;
+  [...$('tabs').children].forEach((b,j)=>b.setAttribute('aria-pressed', j===i));
+  $('strip').replaceChildren(...DATA[m].frames.map((fr,j)=>{const im=document.createElement('img'); im.src=fr.src; im.alt=fr.name; im.onclick=()=>{f=j; show(); setPlay(false);}; return im;}));
+  show(); tick();
+}
+function setPlay(p){ playing = p; $('play').textContent = p ? '⏸ 멈춤' : '▶ 재생'; tick(); }
+DATA.forEach((d,i)=>{ const b=document.createElement('button'); b.type='button'; b.textContent=d.title; b.onclick=()=>pick(i); $('tabs').append(b); });
+$('play').onclick = ()=>setPlay(!playing);
+$('prev').onclick = ()=>{ setPlay(false); f = (f-1+DATA[m].frames.length)%DATA[m].frames.length; show(); };
+$('next').onclick = ()=>{ setPlay(false); f = (f+1)%DATA[m].frames.length; show(); };
+$('speed').oninput = e=>{ speed = +e.target.value; $('sv').textContent = speed+'x'; tick(); };
+document.addEventListener('keydown', e=>{ if(e.code==='Space'){ e.preventDefault(); setPlay(!playing);} if(e.key==='ArrowRight') $('next').click(); if(e.key==='ArrowLeft') $('prev').click(); });
+pick(0);
+</script>
+</body>
+</html>
