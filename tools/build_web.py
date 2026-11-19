@@ -17,20 +17,19 @@ SIZE = 512
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
     ("start", "앱 시작 · 땅에서 쑤욱", [
+        ("e00_sprout", 80, True, "scaleY(0.3)"), ("e00_sprout", 90, True, "scaleY(1.15)"),
+        ("e00_sprout", 80, True, "scaleY(0.92)"), ("e00_sprout", 700, True),
         ("e01_cat", 90, True, "scaleY(0.25)"), ("e01_cat", 110, True, "scaleY(1.22)"),
         ("e01_cat", 100, True, "scaleY(0.86)"), ("e01_cat", 90, True, "scaleY(1.07)"),
-        ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 260, True),
-        ("e01_cat_in", 150, True), ("e01_cat", 150, True), ("e01_cat_in", 150, True), ("e01_cat", 300, True),
-        ("e02_blink", 150, True), ("e01_cat_in", 400, True),
+        ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 300, True),
+        ("e01_cat_L", 160, True), ("e01_cat", 120, True), ("e01_cat_R", 160, True), ("e01_cat", 120, True),
+        ("e01_cat_L", 160, True), ("e01_cat", 120, True), ("e01_cat_R", 160, True), ("e01_cat", 400, True),
         ("e03_hands", 320, True), ("e04_knee", 320, True), ("e05_rise", 260, True),
         ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
-    ("snack", "사탕수수 꺼내 오물오물 (대기 중 무작위)", [
-        ("master", 500, True), ("s00_reach_mid", 140, True), ("s01_reach", 220, True),
-        ("s02_hold", 260, True), ("s03_bite", 200, True),
-        ("s04_chew", 180, True), ("s03_bite", 180, True), ("s04_chew", 180, True),
-        ("s03_bite", 180, True), ("s04_chew", 260, True),
-        ("s02_hold", 240, True), ("s01_reach", 200, True), ("s00_reach_mid", 140, True)]),
+    ("snack", "사탕수수 한입 (대기 중 무작위)", [
+        ("master", 500, True), ("m03_snack", 220, True), ("k03_snack", 1200, True),
+        ("m03_snack", 220, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
         ("master", 500, True), ("m04_pull", 160, False), ("k04_pull", 900, False),
         ("m04_pull", 160, False)]),
@@ -48,6 +47,16 @@ def load(name):
         return Image.open(MASTER).convert("RGB")
     p = os.path.join(KEYS, name + ".png")
     return Image.open(p).convert("RGB") if os.path.exists(p) else None
+
+
+def _wh(im):
+    px = im.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b = px[x, y]
+            if r > 228 and g > 228 and b > 228:
+                px[x, y] = (255, 255, 255)
+    return im
 
 
 def bbox(im):
@@ -70,7 +79,7 @@ def main():
                 im = load(name)
                 if im is None:
                     continue
-                im = im.resize((1254, 1254))
+                im = _wh(im.resize((1254, 1254)))
                 canvas = Image.new("RGB", (1254, 1254), "white")
                 b = bbox(im)
                 if ground and name != "master":
