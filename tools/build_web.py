@@ -14,7 +14,7 @@ OUT = os.path.join(ROOT, "art", "anim", "web")
 FR = os.path.join(OUT, "frames")
 SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
-DROP = {"e04_knee": 110, "e05_rise": 60}
+DROP = {}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -24,26 +24,34 @@ MOTIONS = [
         ("e01_cat", 90, True, "scaleY(0.25)"), ("e01_cat", 110, True, "scaleY(1.22)"),
         ("e01_cat", 100, True, "scaleY(0.86)"), ("e01_cat", 90, True, "scaleY(1.07)"),
         ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 300, True),
-        ("e01_cat_L", 107, True), ("e01_cat", 80, True), ("e01_cat_R", 107, True), ("e01_cat", 80, True),
-        ("e01_cat_L", 107, True), ("e01_cat", 80, True), ("e01_cat_R", 107, True), ("e01_cat", 200, True),
+        ("e01_cat_L", 82, True), ("e01_cat", 62, True), ("e01_cat_R", 82, True), ("e01_cat", 62, True),
+        ("e01_cat_L", 82, True), ("e01_cat", 62, True), ("e01_cat_R", 82, True), ("e01_cat", 200, True),
         ("e01_cat_in", 220, True), ("e02_blink", 140, True),
         ("e03_hands", 300, True), ("e04_knee", 280, True), ("e05_rise", 240, True),
         ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
     ("snack", "사탕수수 한입 (대기 중 무작위)", [
-        ("master", 500, True), ("m03_snack", 220, True), ("k03_snack", 1200, True),
-        ("m03_snack", 220, True)]),
+        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 200, True), ("k03_snack", 1200, True),
+        ("m03_snack", 200, True), ("m03a_snack", 160, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_half", 140, False),
-        ("k04_pull", 150, False), ("k04_pull_b", 150, False), ("k04_pull", 150, False),
-        ("k04_pull_b", 150, False), ("k04_pull", 150, False), ("k04_pull_b", 150, False),
-        ("k04_pull_half", 140, False), ("m04a_pull", 130, True)]),
+        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_half_cry", 140, False),
+        ("k04_pull_cry", 150, False), ("k04_pull_b_cry", 150, False), ("k04_pull_cry", 150, False),
+        ("k04_pull_b_cry", 150, False), ("k04_pull_cry", 150, False), ("k04_pull_b_cry", 150, False),
+        ("k04_pull_half_cry", 140, False), ("m04a_pull", 130, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
-        ("master", 500, True), ("m05_harvest", 300, True), ("k05_harvest", 1200, True),
-        ("m05_harvest", 200, True)]),
+        ("master", 500, True), ("m05_harvest", 260, True), ("m05b_harvest", 300, True),
+        ("k05_harvest", 1200, True), ("m05b_harvest", 200, True), ("m05_harvest", 200, True)]),
     ("invite", "정원 초대 (두 번 터치 메뉴)", [
-        ("master", 500, True), ("m06_invite", 180, True), ("k06_invite", 1100, True),
-        ("m06_invite", 180, True)]),
+        ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
+        ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
+    ("weed", "잡초 발견 → 손으로 뽑기", [
+        ("master", 500, True), ("w01_find", 900, True), ("w02_grab", 300, True),
+        ("w03_pull", 260, True), ("w04_out", 1000, True)]),
+    ("exit", "퇴장 (앱 끌 때)", [
+        ("master", 400, True), ("x01_bye", 800, True), ("e05_rise", 220, True), ("e04_knee", 220, True),
+        ("e03_hands", 220, True), ("e01_cat", 200, True), ("e00_sprout", 300, True)]),
+    ("doze", "졸기 (밤·오래 안 만짐)", [
+        ("d01_doze", 700, True), ("d02_nod", 500, True), ("d01_doze", 700, True), ("d02_nod", 500, True)]),
 ]
 
 
