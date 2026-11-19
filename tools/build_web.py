@@ -15,6 +15,8 @@ FR = os.path.join(OUT, "frames")
 SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
 DROP = {}
+# 머리 폭 자동 측정이 안 맞는 프레임은 눈으로 맞춘 배율을 쓴다(스탠딩 머리 크기 기준)
+SCALE = {"m05_harvest": 0.93, "m05b_harvest": 0.9, "k05_harvest": 0.92}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -31,12 +33,12 @@ MOTIONS = [
         ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
     ("snack", "사탕수수 한입 (대기 중 무작위)", [
-        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 200, True), ("k03_snack", 1200, True),
+        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 200, True), ("k03_snack", 220, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 300, True),
         ("m03_snack", 200, True), ("m03a_snack", 160, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
         ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_half_cry", 140, False),
-        ("k04_pull_cry", 150, False), ("k04_pull_b_cry", 150, False), ("k04_pull_cry", 150, False),
-        ("k04_pull_b_cry", 150, False), ("k04_pull_cry", 150, False), ("k04_pull_b_cry", 150, False),
+        ("k04_pull_cry2", 150, False), ("k04_pull_b_cry", 150, False), ("k04_pull_cry2", 150, False),
+        ("k04_pull_b_cry", 150, False), ("k04_pull_cry2", 150, False), ("k04_pull_b_cry", 150, False),
         ("k04_pull_half_cry", 140, False), ("m04a_pull", 130, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("m05_harvest", 260, True), ("m05b_harvest", 300, True),
@@ -112,8 +114,8 @@ def main():
                     continue
                 im = _wh(im.resize((1254, 1254)))
                 hw = head_w(im)
-                if name != "master" and hw and 0.75 < m_head / hw < 1.3 and abs(m_head / hw - 1) > 0.02:
-                    k = m_head / hw
+                k = SCALE.get(name) or (m_head / hw if (name != "master" and hw and 0.6 < m_head / hw < 1.7) else 1)
+                if abs(k - 1) > 0.02:
                     b0 = bbox(im)
                     big = im.resize((round(1254 * k), round(1254 * k)), Image.NEAREST)
                     cx, by = (b0[0] + b0[2]) / 2 * k, b0[3] * k
