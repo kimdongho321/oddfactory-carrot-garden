@@ -16,10 +16,21 @@ SIZE = 512
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
+    ("start", "앱 시작 · 땅에서 쑤욱", [
+        ("e01_cat", 90, True, "scaleY(0.25)"), ("e01_cat", 110, True, "scaleY(1.22)"),
+        ("e01_cat", 100, True, "scaleY(0.86)"), ("e01_cat", 90, True, "scaleY(1.07)"),
+        ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 260, True),
+        ("e01_cat_in", 150, True), ("e01_cat", 150, True), ("e01_cat_in", 150, True), ("e01_cat", 300, True),
+        ("e02_blink", 150, True), ("e01_cat_in", 400, True),
+        ("e03_hands", 320, True), ("e04_knee", 320, True), ("e05_rise", 260, True),
+        ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
-    ("snack", "사탕수수 한입 (대기 중 무작위)", [
-        ("master", 500, True), ("m03_snack", 220, True), ("k03_snack", 1200, True),
-        ("m03_snack", 220, True)]),
+    ("snack", "사탕수수 꺼내 오물오물 (대기 중 무작위)", [
+        ("master", 500, True), ("s00_reach_mid", 140, True), ("s01_reach", 220, True),
+        ("s02_hold", 260, True), ("s03_bite", 200, True),
+        ("s04_chew", 180, True), ("s03_bite", 180, True), ("s04_chew", 180, True),
+        ("s03_bite", 180, True), ("s04_chew", 260, True),
+        ("s02_hold", 240, True), ("s01_reach", 200, True), ("s00_reach_mid", 140, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
         ("master", 500, True), ("m04_pull", 160, False), ("k04_pull", 900, False),
         ("m04_pull", 160, False)]),
@@ -52,7 +63,9 @@ def main():
     data, done = [], {}
     for mid, title, seq in MOTIONS:
         frames = []
-        for name, ms, ground in seq:
+        for item in seq:
+            name, ms, ground = item[:3]
+            tf = item[3] if len(item) > 3 else ""
             if name not in done:
                 im = load(name)
                 if im is None:
@@ -68,7 +81,7 @@ def main():
                 canvas.paste(im, (dx, dy))
                 canvas.resize((SIZE, SIZE), Image.LANCZOS).save(os.path.join(FR, name + ".png"))
                 done[name] = True
-            frames.append({"src": "frames/" + name + ".png", "ms": ms, "name": name})
+            frames.append({"src": "frames/" + name + ".png", "ms": ms, "name": name, "tf": tf})
         data.append({"id": mid, "title": title, "frames": frames})
     html = open(os.path.join(os.path.dirname(__file__), "viewer_template.html"), encoding="utf-8").read()
     html = html.replace("__DATA__", json.dumps(data, ensure_ascii=False))
