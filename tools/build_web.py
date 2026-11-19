@@ -13,6 +13,8 @@ MASTER = os.path.join(ROOT, "art", "final", "carrot_master.png")
 OUT = os.path.join(ROOT, "art", "anim", "web")
 FR = os.path.join(OUT, "frames")
 SIZE = 512
+# 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
+DROP = {"e04_knee": 110, "e05_rise": 60}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -22,17 +24,20 @@ MOTIONS = [
         ("e01_cat", 90, True, "scaleY(0.25)"), ("e01_cat", 110, True, "scaleY(1.22)"),
         ("e01_cat", 100, True, "scaleY(0.86)"), ("e01_cat", 90, True, "scaleY(1.07)"),
         ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 300, True),
-        ("e01_cat_L", 160, True), ("e01_cat", 120, True), ("e01_cat_R", 160, True), ("e01_cat", 120, True),
-        ("e01_cat_L", 160, True), ("e01_cat", 120, True), ("e01_cat_R", 160, True), ("e01_cat", 400, True),
-        ("e03_hands", 320, True), ("e04_knee", 320, True), ("e05_rise", 260, True),
+        ("e01_cat_L", 107, True), ("e01_cat", 80, True), ("e01_cat_R", 107, True), ("e01_cat", 80, True),
+        ("e01_cat_L", 107, True), ("e01_cat", 80, True), ("e01_cat_R", 107, True), ("e01_cat", 200, True),
+        ("e01_cat_in", 220, True), ("e02_blink", 140, True),
+        ("e03_hands", 300, True), ("e04_knee", 280, True), ("e05_rise", 240, True),
         ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
     ("snack", "사탕수수 한입 (대기 중 무작위)", [
         ("master", 500, True), ("m03_snack", 220, True), ("k03_snack", 1200, True),
         ("m03_snack", 220, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("m04a_pull", 140, True), ("m04_pull", 160, False), ("k04_pull", 900, False),
-        ("m04_pull", 160, False), ("m04a_pull", 140, True)]),
+        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_half", 140, False),
+        ("k04_pull", 150, False), ("k04_pull_b", 150, False), ("k04_pull", 150, False),
+        ("k04_pull_b", 150, False), ("k04_pull", 150, False), ("k04_pull_b", 150, False),
+        ("k04_pull_half", 140, False), ("m04a_pull", 130, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("m05_harvest", 300, True), ("k05_harvest", 1200, True),
         ("m05_harvest", 200, True)]),
@@ -54,7 +59,8 @@ def _wh(im):
     for y in range(im.height):
         for x in range(im.width):
             r, g, b = px[x, y]
-            if r > 228 and g > 228 and b > 228:
+            # 무채색(회색끼) 밝은 점만 흰색으로. 밝은 피부색(살구빛)은 건드리지 않는다.
+            if min(r, g, b) > 228 and max(r, g, b) - min(r, g, b) <= 8:
                 px[x, y] = (255, 255, 255)
     return im
 
@@ -112,7 +118,7 @@ def main():
                     dy = m_bot - b[3]
                 else:
                     dx = dy = 0
-                canvas.paste(im, (dx, dy))
+                canvas.paste(im, (dx, dy + DROP.get(name, 0)))
                 canvas.resize((SIZE, SIZE), Image.LANCZOS).save(os.path.join(FR, name + ".png"))
                 done[name] = True
             frames.append({"src": "frames/" + name + ".png", "ms": ms, "name": name, "tf": tf})
