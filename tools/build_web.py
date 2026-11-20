@@ -49,7 +49,7 @@ MOTIONS = [
         ("master", 600, True), ("i02_rub", 1400, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
-        ("h03_popout", 220, True), ("k05_harvest", 1200, True), ("h03_popout", 200, True), ("h01_notice", 200, True)]),
+        ("h03_popout", 220, True), ("k05_harvest", 1400, True)]),
     ("invite", "정원 초대 (두 번 터치 메뉴)", [
         ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
         ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
