@@ -44,9 +44,10 @@ MOTIONS = [
         ("p2_flailA", 130, True), ("p2_flailM", 100, True), ("p2_flailB", 130, True), ("p2_flailM", 100, True),
         ("p2_flailA", 130, True), ("p2_lift", 140, True), ("p2_open", 160, True)]),
     ("water", "물뿌리개로 물 주기 (대기 중 무작위)", [
-        ("master", 600, True), ("i01_water", 1400, True)]),
+        ("master", 500, True), ("i01a_water", 260, True), ("i01_water", 300, True), ("i01b_water", 300, True),
+        ("i01_water", 300, True), ("i01b_water", 300, True), ("i01a_water", 260, True)]),
     ("rub", "사탕수수 볼 비비기 (대기 중 무작위)", [
-        ("master", 600, True), ("i02_rub", 1400, True)]),
+        ("master", 500, True), ("i02a_rub", 300, True), ("i02_rub", 1200, True), ("i02a_rub", 300, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
         ("h03_popout", 220, True), ("k05_harvest", 1400, True)]),
