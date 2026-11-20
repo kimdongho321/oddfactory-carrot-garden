@@ -38,7 +38,7 @@ MOTIONS = [
         ("k03_snack", 180, True), ("k03b_chew", 300, True), ("m03b_snack", 200, True), ("m03_snack", 200, True),
         ("m03a_snack", 160, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_sad6", 1200, False), ("m04a_pull", 130, True)]),
+        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_f450", 1200, False), ("m04a_pull", 130, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
         ("h03_popout", 220, True), ("k05_harvest", 1200, True), ("h03_popout", 200, True), ("h01_notice", 200, True)]),
