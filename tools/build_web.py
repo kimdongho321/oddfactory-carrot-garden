@@ -38,9 +38,14 @@ MOTIONS = [
         ("k03_snack", 180, True), ("k03b_chew", 300, True), ("m03b_snack", 200, True), ("m03_snack", 200, True),
         ("m03a_snack", 160, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("p2_open", 180, True), ("p2_flailA", 160, True), ("p2_flailB", 160, True),
-        ("p2_flailA", 160, True), ("p2_flailB", 160, True), ("p2_flailA", 160, True), ("p2_flailB", 160, True),
-        ("p2_open", 180, True)]),
+        ("master", 400, True), ("p2_open", 160, True), ("p2_lift", 140, True),
+        ("p2_flailA", 130, True), ("p2_flailM", 100, True), ("p2_flailB", 130, True), ("p2_flailM", 100, True),
+        ("p2_flailA", 130, True), ("p2_flailM", 100, True), ("p2_flailB", 130, True), ("p2_flailM", 100, True),
+        ("p2_flailA", 130, True), ("p2_lift", 140, True), ("p2_open", 160, True)]),
+    ("water", "물뿌리개로 물 주기 (대기 중 무작위)", [
+        ("master", 600, True), ("i01_water", 1400, True)]),
+    ("rub", "사탕수수 볼 비비기 (대기 중 무작위)", [
+        ("master", 600, True), ("i02_rub", 1400, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
         ("h03_popout", 220, True), ("k05_harvest", 1200, True), ("h03_popout", 200, True), ("h01_notice", 200, True)]),
