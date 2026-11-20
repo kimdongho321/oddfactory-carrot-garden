@@ -55,8 +55,8 @@ MOTIONS = [
         ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
         ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
     ("weed", "잡초 발견 → 손으로 뽑기", [
-        ("master", 500, True), ("w00_notice", 220, True), ("w01_find", 800, True),
-        ("w01b_bend", 220, True), ("w02_grab", 400, True), ("w03_pull", 260, True), ("w03b_popped", 220, True), ("w04_out", 1000, True), ("w03b_popped", 200, True)]),
+        ("master", 500, True), ("wn_grab", 600, True), ("wn_pull", 180, True), ("wn_grab", 140, True),
+        ("wn_pull", 180, True), ("wn_grab", 140, True), ("wn_pull", 400, True), ("w04_out", 1000, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
         ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
