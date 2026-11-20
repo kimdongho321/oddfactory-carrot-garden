@@ -4,6 +4,7 @@ art/anim/keys 의 키·중간 프레임을 같은 크기 캔버스에 발 위치
 art/anim/web/frames/ 에 저장하고, art/anim/web/index.html 을 만든다.
 """
 import json
+import time
 import os
 from PIL import Image
 
@@ -16,7 +17,7 @@ SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
 DROP = {}
 # 머리 폭 자동 측정이 안 맞는 프레임은 눈으로 맞춘 배율을 쓴다(스탠딩 머리 크기 기준)
-SCALE = {"m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.95}
+SCALE = {"m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -138,7 +139,7 @@ def main():
                 canvas.paste(im, (dx, dy + DROP.get(name, 0)))
                 canvas.resize((SIZE, SIZE), Image.LANCZOS).save(os.path.join(FR, name + ".png"))
                 done[name] = True
-            frames.append({"src": "frames/" + name + ".png", "ms": ms, "name": name, "tf": tf})
+            frames.append({"src": "frames/" + name + ".png?v=" + str(int(time.time())), "ms": ms, "name": name, "tf": tf})
         data.append({"id": mid, "title": title, "frames": frames})
     html = open(os.path.join(os.path.dirname(__file__), "viewer_template.html"), encoding="utf-8").read()
     html = html.replace("__DATA__", json.dumps(data, ensure_ascii=False))
