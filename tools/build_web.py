@@ -33,27 +33,27 @@ MOTIONS = [
         ("master", 1600, True)]),
     ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
     ("snack", "사탕수수 한입 (대기 중 무작위)", [
-        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 200, True), ("k03_snack", 220, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 300, True),
-        ("m03_snack", 200, True), ("m03a_snack", 160, True)]),
+        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 220, True), ("m03b_snack", 220, True),
+        ("k03_snack", 220, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 180, True),
+        ("k03_snack", 180, True), ("k03b_chew", 300, True), ("m03b_snack", 200, True), ("m03_snack", 200, True),
+        ("m03a_snack", 160, True)]),
     ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_half_cry", 140, False),
-        ("k04_pull_cry2", 150, False), ("k04_pull_b_cry", 150, False), ("k04_pull_cry2", 150, False),
-        ("k04_pull_b_cry", 150, False), ("k04_pull_cry2", 150, False), ("k04_pull_b_cry", 150, False),
-        ("k04_pull_half_cry", 140, False), ("m04a_pull", 130, True)]),
+        ("master", 400, True), ("m04a_pull", 130, True), ("k04_pull_sad6", 1200, False), ("m04a_pull", 130, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
-        ("master", 500, True), ("m05_harvest", 260, True), ("m05b_harvest", 300, True),
-        ("k05_harvest", 1200, True), ("m05b_harvest", 200, True), ("m05_harvest", 200, True)]),
+        ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
+        ("h03_popout", 220, True), ("k05_harvest", 1200, True), ("h03_popout", 200, True), ("h01_notice", 200, True)]),
     ("invite", "정원 초대 (두 번 터치 메뉴)", [
         ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
         ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
     ("weed", "잡초 발견 → 손으로 뽑기", [
-        ("master", 500, True), ("w01_find", 900, True), ("w02_grab", 300, True),
-        ("w03_pull", 260, True), ("w04_out", 1000, True)]),
+        ("master", 500, True), ("w00_notice", 220, True), ("w01_find", 800, True),
+        ("w01b_bend", 220, True), ("w02_grab", 400, True), ("w03_pull", 260, True), ("w03b_popped", 220, True), ("w04_out", 1000, True), ("w03b_popped", 200, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
-        ("master", 400, True), ("x01_bye", 800, True), ("e05_rise", 220, True), ("e04_knee", 220, True),
-        ("e03_hands", 220, True), ("e01_cat", 200, True), ("e00_sprout", 300, True)]),
-    ("doze", "졸기 (밤·오래 안 만짐)", [
-        ("d01_doze", 700, True), ("d02_nod", 500, True), ("d01_doze", 700, True), ("d02_nod", 500, True)]),
+        ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
+        ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
+        ("e01_cat", 70, True, "scaleY(1.12)"), ("e01_cat", 70, True, "scaleY(0.6)"), ("e01_cat", 70, True, "scaleY(0.25)"),
+        ("e00_sprout", 300, True), ("e00_sprout", 70, True, "scaleY(1.15)"), ("e00_sprout", 70, True, "scaleY(0.4)"),
+        ("e00_sprout", 60, True, "scaleY(0.05)")]),
 ]
 
 
