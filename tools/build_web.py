@@ -17,7 +17,7 @@ SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
 DROP = {}
 # 머리 폭 자동 측정이 안 맞는 프레임은 눈으로 맞춘 배율을 쓴다(스탠딩 머리 크기 기준)
-SCALE = {"m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 0.95, "i02_rub": 0.95}
+SCALE = {"m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -47,7 +47,7 @@ MOTIONS = [
         ("master", 500, True), ("i01a_water", 260, True), ("i01_water", 300, True), ("i01b_water", 300, True),
         ("i01_water", 300, True), ("i01b_water", 300, True), ("i01a_water", 260, True)]),
     ("rub", "사탕수수 볼 비비기 (대기 중 무작위)", [
-        ("master", 500, True), ("i02a_rub", 300, True), ("i02_rub", 1200, True), ("i02a_rub", 300, True)]),
+        ("master", 500, True), ("i02a_rub", 300, True), ("i03_lick", 900, True), ("i02_rub", 900, True), ("i02a_rub", 300, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
         ("h03_popout", 220, True), ("k05_harvest", 1400, True)]),
@@ -55,8 +55,8 @@ MOTIONS = [
         ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
         ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
     ("weed", "잡초 발견 → 손으로 뽑기", [
-        ("master", 500, True), ("wn_grab", 600, True), ("wn_mid", 160, True), ("wn_pull", 180, True),
-        ("wn_mid", 140, True), ("wn_pull", 180, True), ("wn_mid", 140, True), ("wn_pull", 400, True),
+        ("master", 500, True), ("wn_grab", 600, True), ("wn_mid", 160, True), ("wn_pull2", 180, True),
+        ("wn_mid", 140, True), ("wn_pull2", 180, True), ("wn_mid", 140, True), ("wn_pull2", 400, True),
         ("w04_out", 1000, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
