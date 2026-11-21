@@ -47,7 +47,7 @@ MOTIONS = [
         ("master", 500, True), ("i01a_water", 260, True), ("i01_water", 300, True), ("i01b_water", 300, True),
         ("i01_water", 300, True), ("i01b_water", 300, True), ("i01a_water", 260, True)]),
     ("rub", "사탕수수 볼 비비기 (대기 중 무작위)", [
-        ("master", 500, True), ("i02a_rub", 300, True), ("i03_lick", 900, True), ("i02_rub", 900, True), ("i02a_rub", 300, True)]),
+        ("master", 500, True), ("i02a_rub", 300, True), ("i03_lick", 200, True), ("i03b_lick", 200, True), ("i03_lick", 200, True), ("i03b_lick", 200, True), ("i03_lick", 200, True), ("i03b_lick", 300, True), ("i02_rub", 900, True), ("i02a_rub", 300, True)]),
     ("harvest", "오늘의 수확 (한 번 터치)", [
         ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
         ("h03_popout", 220, True), ("k05_harvest", 1400, True)]),
@@ -56,8 +56,8 @@ MOTIONS = [
         ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
     ("weed", "잡초 발견 → 손으로 뽑기", [
         ("master", 500, True), ("wn_grab", 600, True), ("wn_mid", 160, True), ("wn_pull2", 180, True),
-        ("wn_mid", 140, True), ("wn_pull2", 180, True), ("wn_mid", 140, True), ("wn_pull2", 400, True),
-        ("w04_out", 1000, True)]),
+        ("wn_mid", 140, True), ("wn_pull2", 180, True), ("wn_mid", 140, True), ("wn_pull2", 300, True),
+        ("wn_fall", 1200, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
         ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
