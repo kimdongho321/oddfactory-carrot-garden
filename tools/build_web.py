@@ -58,6 +58,8 @@ MOTIONS = [
         ("master", 500, True), ("wn_grab", 600, True), ("wn_mid", 160, True), ("wn_pull2", 180, True),
         ("wn_mid", 140, True), ("wn_pull2", 180, True), ("wn_mid", 140, True), ("wn_pull2", 300, True),
         ("wn_fall", 1200, True)]),
+    ("barrow", "잡초 여러 개 정리 (수레로 옮기기)", [
+        ("master", 500, True), ("b01_barrow", 1400, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
         ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
