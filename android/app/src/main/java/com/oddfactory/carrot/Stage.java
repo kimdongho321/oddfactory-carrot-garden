@@ -111,6 +111,7 @@ final class Stage extends View {
     float scale = 1f;             // 설정의 크기 배율
     boolean running;
     boolean entering;             // 다음에 보일 때 시작 모션부터
+    boolean enterOnHome;          // 그 시작 모션을 홈 화면에서(시작 버튼 → 홈으로 나감)
     Runnable onExited;            // 종료 모션이 끝나면 부름
 
     Stage(Context c, Sprites s) {
@@ -131,6 +132,8 @@ final class Stage extends View {
             sum += r.height(); n++;
         }
         if (n > 0) cellH = sum / n;
+        // 시작을 눌러 홈 화면으로 나가는 중: 홈 화면(아이콘)에 닿기 전에는 보이지 않다가 거기서 솟아오른다
+        if (entering && enterOnHome && n == 0) visible = false;
         boolean show = visible && getWidth() > 0;
         if (show != shownOnHome) {
             shownOnHome = show;
@@ -140,7 +143,7 @@ final class Stage extends View {
         if (show && (Float.isNaN(x) || entering)) {
             if (n > 0) { RectF r = icons.get(pick()); x = r.centerX() - charH() * 0.3f; y = r.bottom; }
             else { x = getWidth() * 0.5f; y = groundY(); }
-            if (entering) { entering = false; play(S.ENTER, ENTER); } else idle(1500);
+            if (entering) { entering = false; enterOnHome = false; play(S.ENTER, ENTER); } else idle(1500);
         }
         // 다른 앱 위(아이콘 없음)로 바뀌었는데 바닥이 아닌 곳에 서 있으면 바로 바닥으로 걸어간다
         if (show && n == 0 && s == S.IDLE && Math.abs(y - groundY()) > 4) idleFor = 0;
@@ -151,7 +154,14 @@ final class Stage extends View {
     float groundY() { return getHeight() * 0.86f; }
 
     /** 시작: 지금 보이면 그 자리에서, 아니면 다음에 보일 때 땅에서 솟아오른다. */
+    /** 시작 버튼: 지금 화면에서는 숨기고, 홈 화면에 닿으면 거기서 땅에서 솟아오른다. */
+    void enterOnHome() {
+        enter();
+        entering = true; enterOnHome = true; s = S.OFF; x = Float.NaN;
+    }
+
     void enter() {
+        enterOnHome = false;
         entering = true; onExited = null; goal = Goal.WANDER; queue.clear(); loaded.clear(); waitingRemoval = null;
         if (shownOnHome && !Float.isNaN(x)) { entering = false; play(S.ENTER, ENTER); }
     }

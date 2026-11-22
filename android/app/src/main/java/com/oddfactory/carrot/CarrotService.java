@@ -437,7 +437,7 @@ public final class CarrotService extends AccessibilityService {
         CarrotService c = current;
         if (c == null || c.stage == null) return;
         c.prefs.edit().putBoolean("shown", true).apply();
-        c.stage.enter();
+        c.stage.enterOnHome();
         c.scan();
     }
 
