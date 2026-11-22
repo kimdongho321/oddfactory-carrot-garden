@@ -434,7 +434,7 @@ public final class GardenActivity extends Activity {
         float[] rootOnScreen(int i) {
             getLocationOnScreen(loc);
             RectF r = cells.get(i);
-            return new float[]{loc[0] + r.left - page * getWidth() + r.width() * 0.36f, loc[1] + r.top + r.height() * 0.66f};
+            return new float[]{loc[0] + r.left - page * getWidth() + r.width() * 0.5f, loc[1] + r.top + r.height() * 0.76f};
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
@@ -556,16 +556,16 @@ public final class GardenActivity extends Activity {
         void drawCell(Canvas c, RectF r, App a) {
             Long ys = yanking.get(a);
             long yt = ys == null ? -1 : SystemClock.uptimeMillis() - ys;
-            float base = r.top + r.height() * 0.66f, pcx = r.left + r.width() * 0.36f;
+            float base = r.top + r.height() * 0.76f, pcx = r.centerX(); // 식물은 칸 가운데, 크게
             int alpha = 255;
             if (ys != null && yt > hatnimTotal()) alpha = (int) Math.max(0, 255 * (1 - (yt - hatnimTotal()) / 350f)); // 끝나면 칸이 흐려지며 사라짐
             Paint ap = new Paint(px); ap.setAlpha(alpha);
             // 식물: 뽑히는 중이면 햇님이가 튀어나오는 프레임
             Bitmap plant = a.weed ? weedBmp : carrot;
-            float ph = r.height() * (a.weed ? 0.42f : 0.52f);
+            float ph = r.height() * (a.weed ? 0.58f : 0.7f);
             if (ys != null && hatnim[0] != null) {
                 Bitmap hb = hatnim[hatnimFrame(yt)];
-                float hh = r.height() * 0.78f, hw = hh * hb.getWidth() / hb.getHeight();
+                float hh = r.height() * 0.92f, hw = hh * hb.getWidth() / hb.getHeight();
                 c.drawBitmap(hb, null, new RectF(pcx - hw / 2, base - hh, pcx + hw / 2, base), ap);
             } else if (plant != null) {
                 float pw = ph * plant.getWidth() / plant.getHeight();
@@ -574,9 +574,9 @@ public final class GardenActivity extends Activity {
                 c.drawBitmap(plant, null, new RectF(pcx - pw / 2, base - ph, pcx + pw / 2, base), ap);
                 c.restore();
             }
-            // 팻말: 뽑히면 옆으로 쓰러지며 흐려짐
-            float sh = r.height() * 0.44f, sw = sign != null ? sh * sign.getWidth() / sign.getHeight() : sh * 0.7f;
-            float sx = r.right - sw - r.width() * 0.02f, sy = r.top + r.height() * 0.80f - sh;
+            // 팻말: 작게, 식물 오른쪽 앞에 꽂힘(뽑히면 옆으로 쓰러지며 흐려짐)
+            float sh = r.height() * 0.34f, sw = sign != null ? sh * sign.getWidth() / sign.getHeight() : sh * 0.8f;
+            float sx = r.right - sw - r.width() * 0.01f, sy = base + r.height() * 0.06f - sh;
             c.save();
             if (ys != null) { float k = Math.min(1f, yt / 500f); c.rotate(70 * k * k, sx + sw * 0.5f, sy + sh); ap.setAlpha((int) (alpha * (1 - 0.6f * k))); }
             if (sign != null) c.drawBitmap(sign, null, new RectF(sx, sy, sx + sw, sy + sh), ap);
