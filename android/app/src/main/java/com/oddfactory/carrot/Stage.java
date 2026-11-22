@@ -235,6 +235,10 @@ final class Stage extends View {
     void setStale(Set<String> labels) { stale = labels; invalidate(); }
     void setScale(float k) { scale = k; invalidate(); }
 
+    // 잡초 자리: 아이콘 그림(칸 위쪽 약 70%) 오른쪽 아래 모서리
+    static float weedX(RectF r) { return r.centerX() + r.width() * 0.27f; }
+    static float weedY(RectF r) { return r.top + r.height() * 0.70f; }
+
     // ---- 크기 ----
     /** 캐릭터 키: 화면(홈·다른 앱)과 관계없이 항상 같은 크기. 설정의 크기 배율만 반영. */
     float charH() { return 120 * dp * scale; }
@@ -280,8 +284,9 @@ final class Stage extends View {
         RectF r = icons.get(k);
         boolean weedJob = queue.contains(k);
         // 잡초 일: 그림 속 잡초(발 오른쪽)가 아이콘 아래 중앙에 오도록 / 산책: 아이콘 옆에 선다
-        tx = r.centerX() - charH() * (weedJob ? 0.27f : 0.33f);
-        ty = r.bottom - (weedJob ? 0 : cellH * 0.02f);
+        // 잡초 일: 그림 속 잡초(발 오른쪽 0.285×키)가 아이콘 잡초 자리에 오도록 선다
+        tx = weedJob ? weedX(r) - charH() * 0.285f : r.centerX() - charH() * 0.33f;
+        ty = weedJob ? weedY(r) + charH() * 0.02f : r.bottom - cellH * 0.02f;
         tx = Math.max(charW() * 0.35f, Math.min(getWidth() - charW() * 0.35f, tx));
         faceRight = tx > x;
         play(S.WALK, WALK);
@@ -419,9 +424,14 @@ final class Stage extends View {
                 String k = e.getKey();
                 boolean weedy = (stale.contains(k) || queue.contains(k) || k.equals(waitingRemoval)) && !pulled.contains(k);
                 if (!weedy || (holding && k.equals(target))) continue;
+                // 아이콘 그림 오른쪽 아래 모서리에서 돋아나 살랑살랑(칸마다 박자를 조금씩 다르게)
                 RectF r = e.getValue();
-                float ww = r.width() * 0.34f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
-                c.drawBitmap(sp.weed, null, new RectF(r.right - ww * 1.05f, r.bottom - wh * 0.95f, r.right - ww * 0.05f, r.bottom + wh * 0.05f), px);
+                float ww = r.width() * 0.42f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
+                float cx = weedX(r), by = weedY(r);
+                float sway = (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + k.hashCode() % 7) * 5f;
+                c.save(); c.rotate(sway, cx, by);
+                c.drawBitmap(sp.weed, null, new RectF(cx - ww / 2, by - wh * 0.9f, cx + ww / 2, by + wh * 0.1f), px);
+                c.restore();
             }
         }
         Bitmap b = sp.frame(frameNow(SystemClock.uptimeMillis()));
