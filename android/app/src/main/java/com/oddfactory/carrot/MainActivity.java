@@ -111,9 +111,7 @@ public final class MainActivity extends Activity {
     void askWallpaper() {
         new android.app.AlertDialog.Builder(this)
                 .setTitle("텃밭 배경화면")
-                .setMessage("홈 화면 배경을 캬롯 텃밭 그림으로 바꿀까요?
-앱스 화면에서도 텃밭이 비쳐 보여요.
-(지금 배경 사진은 갤러리에서 다시 고를 수 있어요)")
+                .setMessage("홈 화면 배경을 캬롯 텃밭 그림으로 바꿀까요?\n앱스 화면에서도 텃밭이 비쳐 보여요.\n(지금 배경 사진은 갤러리에서 다시 고를 수 있어요)")
                 .setPositiveButton("바꾸기", (d, w) -> new Thread(() -> {
                     boolean ok;
                     try (java.io.InputStream in = getAssets().open("garden_wallpaper.jpg")) {
