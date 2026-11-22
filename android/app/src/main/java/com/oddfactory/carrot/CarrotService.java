@@ -59,6 +59,7 @@ public final class CarrotService extends AccessibilityService {
     Set<String> lastSelected = new HashSet<>();
     boolean selecting;
     long lastLog;
+    String lastSig = "";
 
     static boolean shown(SharedPreferences p) { return p.getBoolean("shown", false); }
     static boolean everywhere(SharedPreferences p) { return p.getBoolean("everywhere", true); }
@@ -135,10 +136,18 @@ public final class CarrotService extends AccessibilityService {
         long now = System.currentTimeMillis(), day = 86_400_000L, limit = 30 * day;
         UsageStatsManager um = getSystemService(UsageStatsManager.class);
         Map<String, Long> lastUse = new HashMap<>();
-        List<UsageStats> list = um.queryUsageStats(UsageStatsManager.INTERVAL_YEARLY, now - 2 * 365 * day, now);
-        if (list != null) for (UsageStats u : list) {
-            Long o = lastUse.get(u.getPackageName());
-            if (o == null || u.getLastTimeUsed() > o) lastUse.put(u.getPackageName(), u.getLastTimeUsed());
+        // 일·주·월 묶음까지 모두 훑어 앱별 가장 최근 사용 시각(앞 화면에 보였던 시각 포함)을 구한다
+        for (int iv : new int[]{UsageStatsManager.INTERVAL_DAILY, UsageStatsManager.INTERVAL_WEEKLY,
+                UsageStatsManager.INTERVAL_MONTHLY, UsageStatsManager.INTERVAL_YEARLY}) {
+            List<UsageStats> list = um.queryUsageStats(iv, now - 400 * day, now);
+            if (list == null) continue;
+            for (UsageStats u : list) {
+                long t = u.getLastTimeUsed();
+                if (Build.VERSION.SDK_INT >= 29) t = Math.max(t, u.getLastTimeVisible());
+                if (u.getTotalTimeInForeground() <= 0 && t <= 0) continue;
+                Long o = lastUse.get(u.getPackageName());
+                if (o == null || t > o) lastUse.put(u.getPackageName(), t);
+            }
         }
         Set<String> stale = new HashSet<>();
         PackageManager pm = getPackageManager();
@@ -154,7 +163,7 @@ public final class CarrotService extends AccessibilityService {
             } catch (Exception ignored) {}
         }
         stage.setStale(stale);
-        log("stale " + stale.size());
+        log("stale " + stale.size() + " / apps " + labelOfPkg.size() + " / used " + lastUse.size() + " " + stale);
     }
     final Runnable staleTimer = this::refreshStale;
 
@@ -254,6 +263,8 @@ public final class CarrotService extends AccessibilityService {
             }
         }
         stage.setScene(visible, icons);
+        String sig = visible + " " + home + " " + icons.size();
+        if (!sig.equals(lastSig)) { lastSig = sig; log("scene visible=" + visible + " home=" + home + " icons=" + icons.keySet()); }
         // 선택 모드(체크 칸이 보임)
         if (anyCheckable) {
             if (!selecting) { selecting = true; logTree("selection mode"); }
@@ -273,9 +284,11 @@ public final class CarrotService extends AccessibilityService {
         if (n.isCheckable()) { checkable = true; if (n.isChecked()) checked.add(r); }
         boolean iconLike = id != null ? id.endsWith("/icon_container") || id.endsWith("/icon_view_container")
                 : (n.isClickable() && n.getContentDescription() != null);
-        if (iconLike && n.isVisibleToUser() && r.width() > 40 && r.height() > 40 && r.width() < 600 && r.height() < 600) {
+        float dp = getResources().getDisplayMetrics().density;
+        if (iconLike && n.isVisibleToUser() && r.width() > 40 * dp && r.height() > 40 * dp && r.width() < 600 && r.height() < 600) {
             String l = nodeLabel(n);
-            if (l != null && !l.isEmpty() && !icons.containsKey(l)) icons.put(l, r);
+            // 페이지 표시 점 같은 것은 빼고 앱·폴더 칸만
+            if (l != null && !l.isEmpty() && !l.contains("페이지") && !icons.containsKey(l)) icons.put(l, r);
         }
         for (int i = 0; i < n.getChildCount(); i++) checkable |= collect(n.getChild(i), icons, checked, depth + 1);
         return checkable;
