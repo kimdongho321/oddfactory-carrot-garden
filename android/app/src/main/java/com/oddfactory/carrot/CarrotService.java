@@ -60,7 +60,8 @@ public final class CarrotService extends AccessibilityService {
     boolean selecting;
     long lastLog;
 
-    static boolean shown(SharedPreferences p) { return p.getBoolean("shown", true); }
+    static boolean shown(SharedPreferences p) { return p.getBoolean("shown", false); }
+    static boolean everywhere(SharedPreferences p) { return p.getBoolean("everywhere", true); }
     static float scaleOf(SharedPreferences p) { return p.getInt("size", 100) / 100f; }
 
     @Override protected void onServiceConnected() {
@@ -73,6 +74,7 @@ public final class CarrotService extends AccessibilityService {
         la.registerCallback(appsCb, h);
         try { stage = new Stage(this, new Sprites(this)); } catch (Exception e) { log("sprites fail " + e); return; }
         stage.setScale(scaleOf(prefs));
+        if (shown(prefs)) stage.entering = true; // 켜진 채로 다시 연결되면(재부팅 등) 땅에서 솟아오르며 등장
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(-1, -1,
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
@@ -229,18 +231,20 @@ public final class CarrotService extends AccessibilityService {
 
     void scan() {
         if (stage == null) return;
-        boolean home = false;
+        boolean visible = false, home = false;
         Map<String, Rect> icons = new LinkedHashMap<>();
         Set<String> selected = new HashSet<>();
         boolean anyCheckable = false;
         if (shown(prefs)) {
             AccessibilityNodeInfo active = getRootInActiveWindow();
             String activePkg = active != null && active.getPackageName() != null ? active.getPackageName().toString() : "";
-            home = activePkg.equals(launcher)
-                    || (activePkg.contains("packageinstaller") && stage.shownOnHome); // 삭제 확인 창 동안은 계속 보인다
-            if (home) {
-                List<AccessibilityWindowInfo> ws = getWindows();
-                for (AccessibilityWindowInfo w : ws) {
+            home = activePkg.equals(launcher);
+            boolean installer = activePkg.contains("packageinstaller") && stage.shownOnHome; // 삭제 확인 창 동안은 계속 보인다
+            boolean ours = activePkg.equals(getPackageName());
+            boolean other = everywhere(prefs) && !activePkg.isEmpty() && !activePkg.equals("com.android.systemui");
+            visible = home || installer || ours || other;
+            if (home || installer) {
+                for (AccessibilityWindowInfo w : getWindows()) {
                     AccessibilityNodeInfo r = w.getRoot();
                     if (r == null || r.getPackageName() == null || !r.getPackageName().toString().equals(launcher)) continue;
                     List<Rect> checked = new ArrayList<>();
@@ -249,7 +253,7 @@ public final class CarrotService extends AccessibilityService {
                 }
             }
         }
-        stage.setHome(home, icons);
+        stage.setScene(visible, icons);
         // 선택 모드(체크 칸이 보임)
         if (anyCheckable) {
             if (!selecting) { selecting = true; logTree("selection mode"); }
@@ -316,6 +320,26 @@ public final class CarrotService extends AccessibilityService {
     }
 
     // ---- 첫 화면에서 부르는 것 ----
+    /** 시작: 땅에서 솟아오르며 등장. */
+    static void summon() {
+        CarrotService c = current;
+        if (c == null || c.stage == null) return;
+        c.prefs.edit().putBoolean("shown", true).apply();
+        c.stage.enter();
+        c.scan();
+    }
+
+    /** 종료: 땅으로 쏙 들어간 뒤 숨는다. */
+    static void dismiss(Runnable after) {
+        CarrotService c = current;
+        if (c == null || c.stage == null) { if (after != null) after.run(); return; }
+        c.stage.exit(() -> {
+            c.prefs.edit().putBoolean("shown", false).apply();
+            c.scan();
+            if (after != null) after.run();
+        });
+    }
+
     static void applySettings() {
         CarrotService c = current;
         if (c == null || c.stage == null) return;

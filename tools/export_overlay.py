@@ -22,6 +22,7 @@ FRAMES = [
     "i01a_water", "i01_water", "i01b_water",
     "wn_lower1", "wn_lower2", "wn_grab_v2", "wn_pop",
     "b01_barrow",
+    "e00_sprout", "e01_cat", "e01_cat_L", "e01_cat_R", "e01_cat_in", "e02_blink", "e03_hands", "e04_knee", "e05_rise",
 ]
 
 

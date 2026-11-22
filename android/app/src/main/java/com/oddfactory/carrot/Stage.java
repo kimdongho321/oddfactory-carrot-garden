@@ -27,17 +27,23 @@ import java.util.Set;
 final class Stage extends View {
     // ---- 모션 정의(프레임 이름, 표시 시간 ms) ----
     static final class Clip {
-        final String[] f; final int[] ms; final int total;
+        final String[] f; final int[] ms; final float[] sy; final int total;
+        /** ("프레임", ms, ...). "프레임@0.3"은 발 기준 세로 배율(땅에서 쑥 튀어나오는 눌림·늘어남). */
         Clip(Object... a) {
-            f = new String[a.length / 2]; ms = new int[a.length / 2]; int t = 0;
-            for (int i = 0; i < f.length; i++) { f[i] = (String) a[i * 2]; ms[i] = (Integer) a[i * 2 + 1]; t += ms[i]; }
+            f = new String[a.length / 2]; ms = new int[a.length / 2]; sy = new float[a.length / 2]; int t = 0;
+            for (int i = 0; i < f.length; i++) {
+                String n = (String) a[i * 2]; int k = n.indexOf('@');
+                f[i] = k < 0 ? n : n.substring(0, k); sy[i] = k < 0 ? 1f : Float.parseFloat(n.substring(k + 1));
+                ms[i] = (Integer) a[i * 2 + 1]; t += ms[i];
+            }
             total = t;
         }
-        String at(long t, boolean loop) {
-            if (loop) t %= total; else if (t >= total) return f[f.length - 1];
-            for (int i = 0; i < f.length; i++) { if (t < ms[i]) return f[i]; t -= ms[i]; }
-            return f[f.length - 1];
+        int idx(long t, boolean loop) {
+            if (loop) t %= total; else if (t >= total) return f.length - 1;
+            for (int i = 0; i < f.length; i++) { if (t < ms[i]) return i; t -= ms[i]; }
+            return f.length - 1;
         }
+        String at(long t, boolean loop) { return f[idx(t, loop)]; }
     }
     static final Clip WALK = new Clip("walk_lift_left", 150, "walk_pass_left_to_right", 110, "walk_lift_right", 150, "walk_pass_right_to_left", 110);
     static final Clip CLAP = new Clip("master", 200, "clap_in_v2", 240, "clap_hit_v2", 200, "clap_out_v2", 160, "clap_hit_v2", 200,
@@ -48,7 +54,16 @@ final class Stage extends View {
     static final Clip TUG = new Clip("wn_grab_v2", 220, "wn_lower2", 140);
     static final Clip POP = new Clip("wn_pop", 700, "wn_lower2", 140, "wn_lower1", 160, "master", 200);
 
-    enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, OFF }
+    // 시작: 새싹 → 머리 뿅 → 혀 낼름 → 손 짚고 → 일어남 / 종료: 반대로 쏙 들어감
+    static final Clip ENTER = new Clip("e00_sprout@0.3", 80, "e00_sprout@1.15", 90, "e00_sprout@0.92", 80, "e00_sprout", 700,
+            "e01_cat@0.25", 90, "e01_cat@1.22", 110, "e01_cat@0.86", 100, "e01_cat@1.07", 90, "e01_cat@0.97", 80, "e01_cat", 300,
+            "e01_cat_L", 82, "e01_cat", 62, "e01_cat_R", 82, "e01_cat", 62, "e01_cat_L", 82, "e01_cat", 62, "e01_cat_R", 82, "e01_cat", 200,
+            "e01_cat_in", 220, "e02_blink", 140, "e03_hands", 300, "e04_knee", 280, "e05_rise", 240, "master", 320);
+    static final Clip EXIT = new Clip("master", 300, "e05_rise", 200, "e04_knee", 200, "e03_hands", 200, "e01_cat_in", 200, "e02_blink", 120,
+            "e01_cat", 160, "e01_cat@1.12", 70, "e01_cat@0.6", 70, "e01_cat@0.25", 70, "e00_sprout", 300, "e00_sprout@1.15", 70,
+            "e00_sprout@0.4", 70, "e00_sprout@0.05", 60);
+
+    enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, ENTER, EXIT, OFF }
     enum Goal { WANDER, DELETE_ONE, LOAD }
 
     final Sprites sp;
@@ -78,6 +93,8 @@ final class Stage extends View {
     long waitSince;
     float scale = 1f;             // 설정의 크기 배율
     boolean running;
+    boolean entering;             // 다음에 보일 때 시작 모션부터
+    Runnable onExited;            // 종료 모션이 끝나면 부름
 
     Stage(Context c, Sprites s) {
         super(c);
@@ -86,7 +103,8 @@ final class Stage extends View {
     }
 
     // ---- 서비스에서 들어오는 정보 ----
-    void setHome(boolean home, Map<String, Rect> screenIcons) {
+    /** visible: 지금 캐릭터를 보일지. screenIcons: 홈 화면이면 아이콘(라벨→화면 좌표), 다른 앱 위면 비어 있음(바닥 모드). */
+    void setScene(boolean visible, Map<String, Rect> screenIcons) {
         getLocationOnScreen(loc);
         icons.clear();
         float sum = 0; int n = 0;
@@ -96,18 +114,37 @@ final class Stage extends View {
             sum += r.height(); n++;
         }
         if (n > 0) cellH = sum / n;
-        boolean show = home && (n > 0 || !Float.isNaN(x));
+        boolean show = visible && getWidth() > 0;
         if (show != shownOnHome) {
             shownOnHome = show;
             setVisibility(show ? VISIBLE : INVISIBLE);
             if (show) resume(); else pause();
         }
-        if (show && Float.isNaN(x) && n > 0) {
-            String k = pick();
-            RectF r = icons.get(k);
-            x = r.centerX() - charH() * 0.3f; y = r.bottom; idle(1500);
+        if (show && (Float.isNaN(x) || entering)) {
+            if (n > 0) { RectF r = icons.get(pick()); x = r.centerX() - charH() * 0.3f; y = r.bottom; }
+            else { x = getWidth() * 0.5f; y = groundY(); }
+            if (entering) { entering = false; play(S.ENTER, ENTER); } else idle(1500);
         }
+        // 다른 앱 위(아이콘 없음)로 바뀌었는데 바닥이 아닌 곳에 서 있으면 바로 바닥으로 걸어간다
+        if (show && n == 0 && s == S.IDLE && Math.abs(y - groundY()) > 4) idleFor = 0;
         invalidate();
+    }
+
+    /** 아이콘이 없는 화면(다른 앱 위)에서 서 있을 바닥: 화면 아래쪽(내비게이션 바 위). */
+    float groundY() { return getHeight() * 0.86f; }
+
+    /** 시작: 지금 보이면 그 자리에서, 아니면 다음에 보일 때 땅에서 솟아오른다. */
+    void enter() {
+        entering = true; onExited = null; goal = Goal.WANDER; queue.clear(); loaded.clear(); waitingRemoval = null;
+        if (shownOnHome && !Float.isNaN(x)) { entering = false; play(S.ENTER, ENTER); }
+    }
+
+    /** 종료: 땅으로 쏙 들어간 뒤 done. 안 보이는 중이면 바로 done. */
+    void exit(Runnable done) {
+        entering = false;
+        if (!shownOnHome || Float.isNaN(x) || s == S.OFF) { x = Float.NaN; s = S.OFF; done.run(); return; }
+        onExited = done; goal = Goal.WANDER; queue.clear(); waitingRemoval = null;
+        play(S.EXIT, EXIT);
     }
 
     /** 사용자가 '설치 삭제'를 눌렀다. labels 한 개면 단일 삭제, 여러 개면 선택 삭제. */
@@ -193,7 +230,12 @@ final class Stage extends View {
             target = waitingRemoval; play(S.GRAB, GRAB); return;
         }
         if (k == null) { goal = goal == Goal.LOAD ? Goal.WANDER : goal; k = pick(); }
-        if (k == null) { idle(2000); return; }
+        if (k == null) { // 아이콘이 없는 화면: 바닥을 따라 아무 곳으로
+            target = null;
+            float m = charW() * 0.5f, span = Math.max(1, getWidth() - 2 * m);
+            tx = m + rnd.nextFloat() * span; ty = groundY();
+            faceRight = tx > x; play(S.WALK, WALK); return;
+        }
         target = k;
         RectF r = icons.get(k);
         boolean weedJob = queue.contains(k);
@@ -207,6 +249,7 @@ final class Stage extends View {
 
     void arrive() {
         if (target != null && queue.contains(target)) { play(S.GRAB, GRAB); return; }
+        if (target == null && icons.isEmpty() && rnd.nextInt(3) == 0) { idle(1500 + rnd.nextInt(2000)); return; }
         play(S.ACT, rnd.nextBoolean() ? CLAP : WATER);
     }
 
@@ -216,7 +259,15 @@ final class Stage extends View {
             case IDLE:
                 if (t >= idleFor) next();
                 break;
+            case ENTER:
+                if (t >= ENTER.total) idle(900);
+                break;
+            case EXIT:
+                if (t >= EXIT.total) { s = S.OFF; x = Float.NaN; Runnable d = onExited; onExited = null; if (d != null) d.run(); }
+                break;
             case WALK: {
+                // 가던 아이콘이 화면에서 사라졌으면(페이지 넘김·다른 앱으로 전환) 새 목적지
+                if (target != null && goal == Goal.WANDER && !icons.containsKey(target)) { next(); break; }
                 float sp = charH() * (goal == Goal.WANDER ? 0.55f : 0.9f);
                 float dx = tx - x, dy = ty - y, d = (float) Math.hypot(dx, dy);
                 if (d <= sp * dt) { x = tx; y = ty; arrive(); }
@@ -266,6 +317,8 @@ final class Stage extends View {
             case TUG: return TUG.at(t, true);
             case POP: return POP.at(t, false);
             case BARROW_OUT: return "b01_barrow";
+            case ENTER: return ENTER.at(t, false);
+            case EXIT: return EXIT.at(t, false);
             case IDLE: return (t % 3200) > 3040 ? "k01_blink" : "master";
             default: return "master";
         }
@@ -289,7 +342,7 @@ final class Stage extends View {
     void stop() { pause(); }
 
     @Override protected void onDraw(Canvas c) {
-        if (!shownOnHome || Float.isNaN(x)) return;
+        if (!shownOnHome || Float.isNaN(x) || s == S.OFF) return;
         // 오래 안 쓴 앱·지우려는 앱 아이콘 아래 잡초(캐릭터가 붙잡고 있는 것은 캐릭터 그림에 이미 있음)
         if (sp.weed != null) {
             boolean holding = s == S.GRAB || s == S.TUG || s == S.POP;
@@ -306,9 +359,14 @@ final class Stage extends View {
         if (b == null) return;
         float h = charH(), k = h / sp.h, w = sp.w * k;
         float left = x - sp.footX * k, top = y - sp.footY * k;
-        boolean flip = (s == S.WALK || s == S.BARROW_OUT) && faceRight;
-        if (flip) { c.save(); c.scale(-1, 1, x, y); }
+        // 그림은 오른쪽을 보고 있다 → 왼쪽으로 걸을 때 좌우 반전
+        boolean flip = (s == S.WALK || s == S.BARROW_OUT) && !faceRight;
+        long t = SystemClock.uptimeMillis() - t0;
+        float sy = s == S.ENTER ? ENTER.sy[ENTER.idx(t, false)] : s == S.EXIT ? EXIT.sy[EXIT.idx(t, false)] : 1f;
+        c.save();
+        if (flip) c.scale(-1, 1, x, y);
+        if (sy != 1f) c.scale(1, sy, x, y);
         c.drawBitmap(b, null, new RectF(left, top, left + w, top + h), px);
-        if (flip) c.restore();
+        c.restore();
     }
 }

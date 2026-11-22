@@ -23,7 +23,7 @@ import android.widget.Toast;
 /** 첫 화면: 권한 켜기(접근성·사용 기록), 캬롯 보이기/숨기기, 크기, 업데이트 확인(현재 버전 표시). */
 public final class MainActivity extends Activity {
     Typeface bold, light; float dp;
-    TextView status; Button showBtn, hideBtn;
+    TextView status; Button showBtn, hideBtn, everyBtn;
     SharedPreferences prefs;
     com.oddfactory.update.UpdateCheck appUpdates;
 
@@ -39,8 +39,8 @@ public final class MainActivity extends Activity {
         TextView sub = text("홈 화면 앱들 사이를 캬롯이 돌보고,\n지우는 앱은 잡초처럼 쑥 뽑아요.", 14, false); sub.setGravity(Gravity.CENTER); l.addView(sub);
 
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
-        showBtn = button("보이기", 0xFF6DB36A, v -> setShown(true));
-        hideBtn = button("숨기기", 0xFFE08A6B, v -> setShown(false));
+        showBtn = button("시작", 0xFF6DB36A, v -> start());
+        hideBtn = button("종료", 0xFFE08A6B, v -> stop());
         for (Button bt : new Button[]{showBtn, hideBtn}) {
             bt.setTextSize(22);
             LinearLayout.LayoutParams half = new LinearLayout.LayoutParams(0, (int) (72 * dp), 1f);
@@ -58,6 +58,12 @@ public final class MainActivity extends Activity {
                 new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())))));
         l.addView(button("② 사용 기록 접근 허용(오래 안 쓴 앱 = 잡초)", 0xFFE7A13C, v -> openUsageAccess()));
 
+        everyBtn = button("", 0xFF9DB08A, v -> {
+            prefs.edit().putBoolean("everywhere", !CarrotService.everywhere(prefs)).apply();
+            CarrotService.applySettings(); refresh();
+        });
+        l.addView(everyBtn);
+
         final int MIN = 60, MAX = 160;
         int cur = Math.max(MIN, Math.min(MAX, prefs.getInt("size", 100)));
         TextView sz = text("캬롯 크기: " + cur + "%", 15, true); sz.setPadding(0, (int) (16 * dp), 0, 0); l.addView(sz);
@@ -70,7 +76,7 @@ public final class MainActivity extends Activity {
         });
         l.addView(seek);
 
-        TextView help = text("캬롯은 홈 화면에서만 보여요. 앱을 길게 눌러 '설치 삭제'를 고르면 그 앱 앞에서 잡초를 붙잡고, 실제로 지워지면 쑥 뽑아요. "
+        TextView help = text("홈 화면에서는 앱 아이콘 사이를 돌아다녀요. 앱을 길게 눌러 '설치 삭제'를 고르면 그 앱 앞에서 잡초를 붙잡고, 실제로 지워지면 쑥 뽑아요. "
                 + "'선택'으로 여러 앱을 고르면 하나씩 뽑아 수레에 싣고, 지우면 수레째 밀고 나가요.", 13, false);
         help.setPadding(0, (int) (12 * dp), 0, 0); l.addView(help);
         l.addView(button("업데이트 확인 (현재 " + BuildConfig.VERSION_NAME + ")", 0xFF8C9AC9, v -> appUpdates.checkNow()));
@@ -100,13 +106,20 @@ public final class MainActivity extends Activity {
         try { startActivity(i); } catch (Exception e) { startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)); }
     }
 
-    void setShown(boolean on) {
-        prefs.edit().putBoolean("shown", on).apply();
-        if (on && CarrotService.current == null) {
+    void start() {
+        if (CarrotService.current == null) {
+            prefs.edit().putBoolean("shown", true).apply(); // 접근성을 켜면 바로 솟아오른다
             startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             Toast.makeText(this, "'캬롯 앱 텃밭'을 켜 주세요", Toast.LENGTH_LONG).show();
+            return;
         }
-        CarrotService.applySettings();
+        CarrotService.summon();
+        refresh();
+    }
+
+    void stop() {
+        CarrotService.dismiss(this::refresh);
+        if (CarrotService.current == null) prefs.edit().putBoolean("shown", false).apply();
         refresh();
     }
 
@@ -122,8 +135,9 @@ public final class MainActivity extends Activity {
         boolean a11y = CarrotService.current != null, usage = usageAllowed(), on = CarrotService.shown(prefs);
         status.setText("접근성(홈 화면 위 캐릭터): " + (a11y ? "켜짐 ✔" : "꺼짐 — 아래 ①")
                 + "\n사용 기록(잡초 표시): " + (usage ? "허용 ✔" : "꺼짐 — 아래 ②")
-                + "\n캬롯: " + (a11y && on ? "홈 화면에 나와요" : on ? "접근성을 켜면 나와요" : "숨김"));
+                + "\n캬롯: " + (a11y && on ? "나와 있어요" : on ? "접근성을 켜면 나와요" : "쉬는 중"));
         showBtn.setAlpha(on ? 0.45f : 1f); hideBtn.setAlpha(on ? 1f : 0.45f);
+        everyBtn.setText("다른 앱 위에서도 보이기: " + (CarrotService.everywhere(prefs) ? "켬" : "끔(홈 화면만)"));
     }
 
     @Override protected void onPause() { appUpdates.pause(); super.onPause(); }
