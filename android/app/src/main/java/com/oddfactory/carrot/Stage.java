@@ -288,6 +288,20 @@ final class Stage extends View {
     }
     float walkSpeed() { return charH() * (goal == Goal.WANDER ? 0.55f : 0.9f); }
 
+    // ---- 텃밭 화면에서 부르는 뽑기: 그 칸까지 걸어가(멀면 달려가) 잡초를 붙잡는다 ----
+    boolean ext; Runnable extGrab; long extSince;
+    /** sx, sy: 뽑을 식물 뿌리의 화면 좌표. 붙잡으면 grabbed(그때 삭제 확인 창). 캬롯이 안 보이면 바로 grabbed. */
+    void pullAt(float sx, float sy, Runnable grabbed) {
+        if (!shownOnHome || Float.isNaN(x) || s == S.ENTER || s == S.EXIT || s == S.OFF) { grabbed.run(); return; }
+        ext = true; extGrab = grabbed; extSince = SystemClock.uptimeMillis();
+        target = null; queue.clear(); waitingRemoval = null; goal = Goal.WANDER;
+        tx = Math.max(charW() * 0.3f, Math.min(getWidth() - charW() * 0.3f, sx - loc[0] - charH() * 0.285f));
+        ty = sy - loc[1];
+        faceRight = tx > x; play(S.WALK, WALK);
+    }
+    void extPop() { if (ext) { ext = false; extGrab = null; play(S.POP, POP); } }
+    void extRelease() { if (ext) { ext = false; extGrab = null; idle(800); } }
+
     /** 다음 할 일: 대기열(잡초) 우선, 없으면 아무 아이콘 앞으로 산책. */
     void next() {
         String k = null;
@@ -316,6 +330,7 @@ final class Stage extends View {
     }
 
     void arrive() {
+        if (ext) { faceRight = true; play(S.GRAB, GRAB); return; }
         if (target != null && queue.contains(target)) { play(S.GRAB, GRAB); return; }
         if (target == null && rnd.nextInt(3) == 0) { idle(1500 + rnd.nextInt(2000)); return; }
         play(S.ACT, rnd.nextBoolean() ? CLAP : WATER);
@@ -337,10 +352,10 @@ final class Stage extends View {
                 break;
             case WALK: {
                 // 가던 아이콘이 화면에서 사라졌으면(페이지 넘김·다른 앱으로 전환) 새 목적지
-                if (target != null && goal == Goal.WANDER && !icons.containsKey(target)) { next(); break; }
-                if (goal == Goal.WANDER && t >= WALK_MAX) { target = null; arrive(); break; } // 1.5초만 걷고 그 자리에서
-                float sp = walkSpeed();
+                if (!ext && target != null && goal == Goal.WANDER && !icons.containsKey(target)) { next(); break; }
+                if (!ext && goal == Goal.WANDER && t >= WALK_MAX) { target = null; arrive(); break; } // 1.5초만 걷고 그 자리에서
                 float dx = tx - x, dy = ty - y, d = (float) Math.hypot(dx, dy);
+                float sp = ext ? charH() * (d > charH() * 2.5f ? 2.4f : 1.2f) : walkSpeed(); // 뽑으러 갈 때 멀면 빨리
                 if (d <= sp * dt) { x = tx; y = ty; arrive(); }
                 else { x += dx / d * sp * dt; y += dy / d * sp * dt; }
                 break;
@@ -349,10 +364,11 @@ final class Stage extends View {
                 if (t >= act.total) idle(2200 + rnd.nextInt(2200));
                 break;
             case GRAB:
-                if (t >= GRAB.total) play(S.TUG, TUG);
+                if (t >= GRAB.total) { play(S.TUG, TUG); if (ext && extGrab != null) { Runnable g = extGrab; extGrab = null; g.run(); } }
                 break;
             case TUG:
-                if (goal == Goal.LOAD) { // 선택 삭제: 버티다 바로 뽑아 수레에
+                if (ext) { if (now - extSince > 90000) extRelease(); }
+                else if (goal == Goal.LOAD) { // 선택 삭제: 버티다 바로 뽑아 수레에
                     if (t >= 900) { pulled.add(target); queue.remove(target); if (!loaded.contains(target)) loaded.add(target); play(S.POP, POP); }
                 } else if (waitingRemoval == null || now - waitSince > 30000) { // 취소됐거나 너무 오래 → 그만
                     waitingRemoval = null; goal = Goal.WANDER; idle(1200);

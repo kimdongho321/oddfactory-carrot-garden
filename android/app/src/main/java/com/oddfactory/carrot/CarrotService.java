@@ -505,6 +505,15 @@ public final class CarrotService extends AccessibilityService {
     }
     void hideMenu() { if (menu != null) { try { wm.removeView(menu); } catch (RuntimeException ignored) {} menu = null; } }
 
+    // ---- 텃밭 화면에서 부르는 뽑기 ----
+    static void pullAt(float sx, float sy, Runnable grabbed) {
+        CarrotService c = current;
+        if (c == null || c.stage == null) { grabbed.run(); return; }
+        c.stage.pullAt(sx, sy, grabbed);
+    }
+    static void pullDone() { CarrotService c = current; if (c != null && c.stage != null) c.stage.extPop(); }
+    static void pullCancel() { CarrotService c = current; if (c != null && c.stage != null) c.stage.extRelease(); }
+
     // ---- 첫 화면에서 부르는 것 ----
     /** 시작: 땅에서 솟아오르며 등장. */
     static void summon() {
