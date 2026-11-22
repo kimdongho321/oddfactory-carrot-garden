@@ -464,7 +464,7 @@ public final class CarrotService extends AccessibilityService {
                 long now = SystemClock.uptimeMillis();
                 if (now - lastTapAt < 300 && pendingTap != null) { // 두 번 톡 → 정원 초대 + 메뉴
                     h.removeCallbacks(pendingTap); pendingTap = null; lastTapAt = 0;
-                    stage.invite(); showMenu(); return true;
+                    showMenu(); return true;
                 }
                 lastTapAt = now;
                 pendingTap = () -> { pendingTap = null; stage.tap(); };
@@ -482,14 +482,20 @@ public final class CarrotService extends AccessibilityService {
         GradientDrawable bg = new GradientDrawable(); bg.setColor(0xFFFFFBF2); bg.setCornerRadius(16 * dp); bg.setStroke(Math.round(3 * dp), 0xFF3A2418);
         box.setBackground(bg);
         Typeface tf = null; try { tf = getResources().getFont(R.font.maple_bold); } catch (Exception ignored) {}
-        String[] labels = {"텃밭 열기", "설정 열기", "캬롯 종료", "닫기"};
+        String[] labels = {"🥕 텃밭 열기 (앱 서랍)", "설정 열기", "캬롯 종료", "닫기"};
         Runnable[] acts = {
-                () -> { hideMenu(); Intent i = new Intent(this, GardenActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); },
+                () -> { hideMenu(); openGardenWithInvite(); },
                 () -> { hideMenu(); Intent i = new Intent(this, MainActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); },
                 () -> { hideMenu(); dismiss(null); },
                 this::hideMenu};
         for (int i = 0; i < labels.length; i++) {
             Button b = new Button(this); b.setText(labels[i]); b.setAllCaps(false); if (tf != null) b.setTypeface(tf);
+            if (i == 0) { // 텃밭 열기만 크게·강조
+                GradientDrawable hb = new GradientDrawable(); hb.setColor(0xFFE7A13C); hb.setCornerRadius(14 * dp); hb.setStroke(Math.round(2.5f * dp), 0xFF3A2418);
+                b.setBackground(hb); b.setTextColor(0xFFFFFFFF); b.setTextSize(17);
+                LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, Math.round(54 * dp)); blp.bottomMargin = Math.round(6 * dp);
+                b.setLayoutParams(blp);
+            }
             final Runnable r = acts[i]; b.setOnClickListener(v -> r.run());
             box.addView(b);
         }
@@ -509,6 +515,13 @@ public final class CarrotService extends AccessibilityService {
         box.setOnTouchListener((v, ev) -> { if (ev.getActionMasked() == MotionEvent.ACTION_OUTSIDE) hideMenu(); return false; });
         menu = box; wm.addView(box, lp);
     }
+    /** 텃밭 열기: 캬롯이 "내 정원에 놀러올래?" 초대 모션을 하고 나서 텃밭 화면이 열린다. */
+    void openGardenWithInvite() {
+        Runnable open = () -> { Intent i = new Intent(this, GardenActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); };
+        if (stage != null && stage.shownOnHome && !stage.busy()) { stage.invite(); h.postDelayed(open, 1300); }
+        else open.run();
+    }
+
     void hideMenu() { if (menu != null) { try { wm.removeView(menu); } catch (RuntimeException ignored) {} menu = null; } }
 
     // ---- 텃밭 화면에서 부르는 뽑기 ----
