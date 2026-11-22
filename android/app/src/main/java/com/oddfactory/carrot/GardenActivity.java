@@ -548,18 +548,19 @@ public final class GardenActivity extends Activity {
             cells.clear(); rowsY.clear();
             float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
             float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
-            cols = Math.max(4, Math.min(8, Math.round(W / (100 * dp)))); // 폭에 맞춰(접힘 4칸, 펼침 7~8칸)
+            cols = 4;                                   // 한 페이지 4×4
             float topUi = 112 * dp, bottomUi = 62 * dp;
             float avail = H - topUi - bottomUi;
             rows = 4;                                   // 한 페이지 4줄 고정
-            cellW = W / cols; cellH = Math.min(avail / rows, cellW * 1.45f);
+            cellH = avail / rows; cellW = Math.min(W / cols, cellH * 1.1f); // 펼친 화면에서도 칸이 너무 넓어지지 않게
+            float gridLeft = (W - cellW * cols) / 2f;
             perPage = rows * cols;
             gridTop = topUi + (avail - rows * cellH) / 2f;
             for (int r = 0; r < rows; r++) rowsY.add(gridTop + r * cellH);
             pages = Math.max(1, (shown.size() + perPage - 1) / perPage);
             for (int i = 0; i < shown.size(); i++) {
                 int p = i / perPage, j = i % perPage, r = j / cols, c = j % cols;
-                float x = p * W + c * cellW, y = gridTop + r * cellH;
+                float x = p * W + gridLeft + c * cellW, y = gridTop + r * cellH;
                 cells.add(new RectF(x, y, x + cellW, y + cellH));
             }
             if (page > pages - 1) { page = pages - 1; pageX = page * W; }
