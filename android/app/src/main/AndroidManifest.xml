@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+ <!-- 오래 안 쓴 앱(잡초)을 알려고 앱별 마지막 사용 시각만 읽는다 -->
+ <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
+ <!-- 앱 안 업데이트 확인(GitHub 최신 릴리스) -->
+ <uses-permission android:name="android.permission.INTERNET"/>
+ <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+ <permission android:name="com.oddfactory.carrot.UPDATE_STATUS" android:protectionLevel="signature"/>
+ <uses-permission android:name="com.oddfactory.carrot.UPDATE_STATUS"/>
+ <!-- 홈 화면 아이콘 이름 → 앱을 맞추려고 실행 가능한 앱 목록만 조회 -->
+ <queries>
+  <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent>
+  <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.HOME"/></intent>
+ </queries>
+ <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="@string/app_name"
+   android:icon="@mipmap/ic_launcher" android:allowBackup="false">
+  <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTask">
+   <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+  </activity>
+  <service android:name=".CarrotService" android:exported="true" android:label="@string/app_name"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+   <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+   <meta-data android:name="android.accessibilityservice" android:resource="@xml/carrot_a11y"/>
+  </service>
+ </application>
+</manifest>

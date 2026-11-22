@@ -1,0 +1,26 @@
+{
+ "w": 354,
+ "h": 320,
+ "footX": 177.0,
+ "footY": 319,
+ "bodyTop": 5,
+ "frames": [
+  "master",
+  "k01_blink",
+  "walk_lift_left",
+  "walk_pass_left_to_right",
+  "walk_lift_right",
+  "walk_pass_right_to_left",
+  "clap_in_v2",
+  "clap_hit_v2",
+  "clap_out_v2",
+  "i01a_water",
+  "i01_water",
+  "i01b_water",
+  "wn_lower1",
+  "wn_lower2",
+  "wn_grab_v2",
+  "wn_pop",
+  "b01_barrow"
+ ]
+}

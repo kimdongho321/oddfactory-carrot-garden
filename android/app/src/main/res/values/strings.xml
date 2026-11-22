@@ -1,0 +1,4 @@
+<resources>
+ <string name="app_name">캬롯 앱 텃밭</string>
+ <string name="a11y_desc">캬롯을 홈 화면 위에 띄우고, 앱 아이콘 앞으로 걸어가 물을 주거나 잡초(삭제하는 앱)를 뽑습니다. 홈 화면의 아이콘 위치·이름과 앱 삭제 메뉴만 확인하며, 화면 내용을 저장하거나 밖으로 보내지 않습니다.</string>
+</resources>
