@@ -1,8 +1,4 @@
-"""웹 미리보기용 추가 모션(앱 자산에서 바로 만든 프레임): 수레로 모으기·수레 엎기·햇님이.
-
-앱에서는 잡초 쌓기·날리기를 코드로 그리지만, 웹 뷰어는 그림만 넘기므로 같은 계산으로 미리 그려 둔다.
-build_web.py 가 불러서 web/frames 에 저장하고 모션 목록 끝에 붙인다.
-"""
+"""웹 미리보기용 추가 모션: 수레(뽑아서 싣기·엎기)·햇님이. 앱(Stage.java)과 같은 계산으로 프레임을 미리 그린다."""
 import json
 import math
 import os
@@ -14,89 +10,134 @@ import build_web as bw
 A = os.path.join(bw.ROOT, "android", "app", "src", "main", "assets")
 FR = os.path.join(A, "frames")
 SIZE = 512
-BIN_DX, BIN_DY, BIN_W = 0.42, -0.25, 0.2  # Stage.java 와 같은 값
+CW, CH = 700, 520          # 장면 캔버스
+CHAR_H = 300                # 캐릭터 키(px)
 
 
 def load(p):
     return Image.open(p).convert("RGBA")
 
 
-def square(img, foot_x, foot_y, scale=1.0):
-    """발 위치가 캔버스 아래 가운데쯤 오도록 흰 정사각형에 얹는다."""
-    S = 460
-    c = Image.new("RGBA", (S, S), (255, 255, 255, 255))
-    im = img.resize((round(img.width * scale), round(img.height * scale)), Image.NEAREST)
-    c.alpha_composite(im, (round(S * 0.36 - foot_x * scale), round(S * 0.92 - foot_y * scale)))
-    return c.convert("RGB").resize((SIZE, SIZE), Image.NEAREST)
+class Scene:
+    def __init__(self):
+        self.meta = json.load(open(os.path.join(FR, "meta.json")))
+        self.b = json.load(open(os.path.join(A, "barrow.json")))
+        self.barrow = load(os.path.join(A, "barrow.png"))
+        self.front = load(os.path.join(A, "barrow_front.png"))
+        self.k = CHAR_H / self.meta["h"]
+        self.s = self.b["handH"] * self.k / self.b["gripH"]
+        self.cache = {}
 
+    def frame(self, n):
+        if n not in self.cache: self.cache[n] = load(os.path.join(FR, n + ".png"))
+        return self.cache[n]
 
-def stacked(frame, meta, items, flies=()):
-    """수레 프레임에 짐칸 잡초 쌓기 + 날아가는 잡초."""
-    f = frame.copy()
-    bh = meta["h"]; fx, fy = meta["footX"], meta["footY"]
-    bx, by, iw = fx + bh * BIN_DX, fy + bh * BIN_DY, bh * BIN_W
-    big = Image.new("RGBA", (f.width + 400, f.height + 200), (0, 0, 0, 0))
-    big.alpha_composite(f, (0, 200))
-    for i, it in enumerate(items):
-        ih = iw * it.height / it.width
-        jx = ((i * 37) % 9 - 4) * iw * 0.04; rot = ((i * 53) % 15 - 7)
-        base = by - i * ih * 0.28
-        s = it.resize((round(iw), round(ih)), Image.NEAREST).rotate(-rot, expand=True, resample=Image.NEAREST)
-        big.alpha_composite(s, (round(bx + jx - s.width / 2), round(200 + base - s.height)))
-    for it, x, y, r in flies:
-        ih = iw * it.height / it.width
-        s = it.resize((round(iw), round(ih)), Image.NEAREST).rotate(-r, expand=True, resample=Image.NEAREST)
-        big.alpha_composite(s, (round(x - s.width / 2), round(200 + y - s.height / 2)))
-    return big, fx, fy + 200
+    def bpt(self, x, y, bx, by, tilt):
+        b, s = self.b, self.s
+        gx = x + b["handX"] * self.k
+        lx, ly = (bx - b["gripX"]) * s, (by - b["groundY"]) * s
+        ax = (b["axleX"] - b["gripX"]) * s
+        a = math.radians(tilt); rx, ry = lx - ax, ly
+        qx = rx * math.cos(a) - ry * math.sin(a) + ax; qy = rx * math.sin(a) + ry * math.cos(a)  # 화면에서 시계 방향(앞으로 기울기)
+        return gx + qx, y + qy
+
+    def slot(self, x, y, n, tilt):
+        b = self.b; row, col = n // 3, n % 3
+        bx = b["binL"] + (b["binR"] - b["binL"]) * (col + 0.5 + (row % 2) * 0.25) / 3
+        by = b["rimY"] + (b["frontY"] - b["rimY"]) * 0.6 - row * (b["frontY"] - b["rimY"]) * 0.55
+        return self.bpt(x, y, bx, by, tilt)
+
+    def item_w(self): return (self.b["binR"] - self.b["binL"]) * self.s * 0.42
+
+    def paste_barrow(self, c, img, x, y, tilt):
+        s = self.s; b = self.b
+        im = img.resize((round(img.width * s), round(img.height * s)), Image.NEAREST)
+        pivot = ((b["axleX"]) * s, b["groundY"] * s)
+        big = Image.new("RGBA", (im.width * 2, im.height * 2), (0, 0, 0, 0))
+        off = (round(im.width - pivot[0]), round(im.height - pivot[1]))
+        big.alpha_composite(im, off)
+        big = big.rotate(-tilt, center=(im.width, im.height), resample=Image.NEAREST)
+        px, py = self.bpt(x, y, b["axleX"], b["groundY"], tilt)
+        c.alpha_composite(big, (round(px - im.width), round(py - im.height)))
+
+    def item(self, c, it, cx, bottom, rot):
+        iw = self.item_w(); ih = iw * it.height / it.width
+        s = it.resize((max(1, round(iw)), max(1, round(ih))), Image.NEAREST).rotate(-rot, expand=True, resample=Image.NEAREST)
+        c.alpha_composite(s, (round(cx - s.width / 2), round(bottom - ih / 2 - s.height / 2)))
+
+    def render(self, name, x, y, tilt=0, stack=(), flies=(), ground=None):
+        c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255))
+        if ground is not None:  # 아직 안 뽑은 잡초(칸)
+            it, gx = ground; self.item(c, it, gx, y, 0)
+        self.paste_barrow(c, self.barrow, x, y, tilt)
+        for i, it in enumerate(stack):
+            sx, sy = self.slot(x, y, i, tilt); self.item(c, it, sx, sy, ((i * 53) % 21 - 10) + tilt)
+        self.paste_barrow(c, self.front, x, y, tilt)
+        f = self.frame(name); k = self.k
+        if tilt:  # 손잡이가 앞으로 밀려 올라가는 만큼 캬롯도 따라 앞으로
+            x += self.bpt(x, y, self.b["gripX"], self.b["gripY"], tilt)[0] - self.bpt(x, y, self.b["gripX"], self.b["gripY"], 0)[0]
+        fi = f.resize((round(f.width * k), round(f.height * k)), Image.NEAREST)
+        c.alpha_composite(fi, (round(x - self.meta["footX"] * k), round(y - self.meta["footY"] * k)))
+        for it, fx, fy, r in flies: self.item(c, it, fx, fy, r)
+        return c.convert("RGB")
 
 
 def build(out_dir, stamp):
-    meta = json.load(open(os.path.join(FR, "barrow.json")))
+    sc = Scene()
     weed = load(os.path.join(A, "weed.png"))
-    crops = [load(os.path.join(A, "garden", n + "_2.png")) for n in ("carrot", "radish", "tomato")]
-    items_all = [weed, crops[0], weed, crops[1]]
-    fr = {n: load(os.path.join(FR, n + ".png")) for n in meta["frames"]}
+    items = [weed, load(os.path.join(A, "garden", "carrot_2.png")), weed, load(os.path.join(A, "garden", "radish_2.png"))]
     out, motions = [], []
+    Y = 440
 
-    def put(name, img, fx, fy, ms):
-        square(img, fx, fy).save(os.path.join(out_dir, name + ".png"))
+    def put(name, img, ms):
+        sq = Image.new("RGB", (CW, CW), "white"); sq.paste(img, (0, (CW - CH) // 2))
+        sq.resize((SIZE, SIZE), Image.NEAREST).save(os.path.join(out_dir, name + ".png"))
         out.append({"src": "frames/" + name + ".png?v=" + stamp, "ms": ms, "name": name, "tf": ""})
 
-    # 1) 수레로 모으기: 걸어가서 던져 넣기 ×4 → 짐칸에 4개 쌓임
-    walk = [("bw_walk_l", 120), ("bw_pass_a", 100), ("bw_walk_r", 120), ("bw_pass_b", 100)]
-    n = 0
+    # 1) 수레로 모으기: 밀고 가서 → 평소 잡초 뽑기 → 던져 넣기, 4번
+    n = 0; x = 110.0
+    pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_pop", 260)]
     for k in range(4):
-        for rep in range(2):
-            for name, ms in walk:
-                img, fx, fy = stacked(fr[name], meta, items_all[:k]); put(f"x_col_{n}", img, fx, fy, ms); n += 1
-        for name, ms in (("bw_windup", 220), ("bw_toss", 260)):
-            img, fx, fy = stacked(fr[name], meta, items_all[:k]); put(f"x_col_{n}", img, fx, fy, ms); n += 1
-        img, fx, fy = stacked(fr["bw_hold"], meta, items_all[:k + 1]); put(f"x_col_{n}", img, fx, fy, 260); n += 1
-    motions.append({"id": "barrow_collect", "title": "여러 개 선택 → 수레에 쌓기", "frames": out}); out = []
+        tx = 130 + k * 25
+        steps = 6
+        for i in range(steps):
+            xx = x + (tx - x) * (i + 1) / steps
+            put(f"x_col_{n}", sc.render("push_a" if i % 2 == 0 else "push_b", xx, Y, 0, items[:k],
+                                         ground=(items[k], xx + CHAR_H * 0.285 + (tx - xx))), 170); n += 1
+        x = tx; gx = x + CHAR_H * 0.285
+        for j, (f, ms) in enumerate(pick):
+            put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < 5 else None), ms); n += 1
+        # 던지기: 손 → 짐칸 포물선 4단계
+        x0, y0 = x + CHAR_H * 0.3, Y - CHAR_H * 0.55
+        x1, y1 = sc.slot(x, Y, k, 0)
+        for j in range(4):
+            t = (j + 1) / 4; fx = x0 + (x1 - x0) * t; fy = y0 + (y1 - sc.item_w() * 0.5 - y0) * t - CHAR_H * 0.35 * 4 * t * (1 - t)
+            put(f"x_col_{n}", sc.render("bw2_toss", x, Y, 0, items[:k], [(items[k], fx, fy + sc.item_w() * 0.5, 360 * t)] if j < 3 else ()), 90); n += 1
+        put(f"x_col_{n}", sc.render("push_a", x, Y, 0, items[:k + 1]), 250); n += 1
+    motions.append({"id": "barrow_collect", "title": "여러 개 선택 → 뽑아서 수레에 싣기", "frames": out}); out = []
 
-    # 2) 수레 엎기: 짐칸 잡초가 앞(오른쪽)으로 쏟아져 화면 밖으로
-    seq = [("bw_hold", 150), ("bd_start", 150), ("bd_lift", 170), ("bd_mid", 170), ("bd_heave", 160), ("bd_heave", 160),
-           ("bd_heave", 160), ("bd_back", 200), ("bd_down", 450), ("bw_hold", 300)]
-    bh = meta["h"]; fx0, fy0 = meta["footX"], meta["footY"]
-    bx, by = fx0 + bh * BIN_DX, fy0 + bh * BIN_DY
-    vel = [(bh * (1.1 + 0.25 * i), -bh * (1.3 + 0.25 * (i % 2)), 300 + 80 * i) for i in range(len(items_all))]
-    t_eject = 3  # bd_mid 부터 쏟아짐
-    for i, (name, ms) in enumerate(seq):
-        flies = []
-        if i >= t_eject:
-            tt = (i - t_eject + 1) * 0.11
-            for j, it in enumerate(items_all):
-                vx, vy, vr = vel[j]
-                flies.append((it, bx + vx * tt, by - j * bh * 0.09 + vy * tt + bh * 3.2 * tt * tt / 2, vr * tt))
-        img, fx, fy = stacked(fr[name], meta, items_all if i < t_eject else [], flies)
-        put(f"x_dump_{i}", img, fx, fy, ms)
+    # 2) 수레 엎기: 바퀴를 축으로 0→70도, 35도 넘으면 짐이 앞으로 쏟아져 날아감
+    x = 160.0; flies = []; stack = list(items); n = 0
+    for t in range(0, 1750, 70):
+        kk = 0 if t < 150 else (t - 150) / 600 if t < 750 else 1 if t < 1150 else 1 - (t - 1150) / 300 if t < 1450 else 0
+        tilt = 40 * max(0, min(1, kk))
+        if stack and tilt > 28:
+            for i, it in enumerate(stack):
+                sx, sy = sc.slot(x, Y, i, tilt)
+                flies.append([it, sx, sy, 1.2 + 0.25 * i, -(0.9 + 0.2 * (i % 2)), 400 + 80 * i, 0])
+            stack = []
+        for f in flies:  # 한 칸(70ms)씩 포물선
+            dt = 0.07; f[4] += 3.2 * dt; f[1] += f[3] * CHAR_H * dt; f[2] += f[4] * CHAR_H * dt; f[6] += f[5] * dt
+        name = "push_a" if t < 150 or t >= 1450 else "bw2_lift"
+        put(f"x_dump_{n}", sc.render(name, x, Y, tilt, stack, [(f[0], f[1], f[2], f[6]) for f in flies]), 70); n += 1
     motions.append({"id": "barrow_dump", "title": "삭제 끝 → 화면 끝에서 수레 엎기", "frames": out}); out = []
 
-    # 3) 햇님이 튀어나오기(지운 칸에서)
+    # 3) 햇님이
     hat = [load(os.path.join(A, "garden", f"hatnim_{i}.png")) for i in range(6)]
     H = max(h.height for h in hat)
     for i, (h, ms) in enumerate(zip(hat, (160, 170, 170, 230, 180, 900))):
-        c = Image.new("RGBA", (H * 2, H + 40), (0, 0, 0, 0)); c.alpha_composite(h, (H - h.width // 2, c.height - h.height - 10))
-        put(f"x_hat_{i}", c, H * 1.0 - (H * 2) * 0.0, c.height - 10, ms)
+        c = Image.new("RGBA", (H * 2, H * 2), (255, 255, 255, 255)); c.alpha_composite(h, (H - h.width // 2, int(H * 1.7) - h.height))
+        c.convert("RGB").resize((SIZE, SIZE), Image.NEAREST).save(os.path.join(out_dir, f"x_hat_{i}.png"))
+        out.append({"src": f"frames/x_hat_{i}.png?v=" + stamp, "ms": ms, "name": f"x_hat_{i}", "tf": ""})
     motions.append({"id": "hatnim", "title": "삭제 → 햇님이 튀어나오기", "frames": out})
     return motions

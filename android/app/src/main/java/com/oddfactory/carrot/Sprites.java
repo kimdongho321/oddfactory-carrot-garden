@@ -13,8 +13,9 @@ final class Sprites {
     final int w, h;          // 프레임 캔버스(px)
     final float footX, footY; // 캔버스 안 발 위치
     final Bitmap weed;
-    // 수레 프레임(frames/barrow.json): 캐릭터+수레라 캔버스가 더 넓다. 기준점 = 캐릭터 발
-    int bw, bh; float bFootX, bFootY;
+    // 수레(따로 그린 빈 수레, barrow.json): 손잡이 끝·바닥·바퀴축·짐칸 위치(수레 그림 px), 밀 때 손 위치(캐릭터 프레임 px)
+    Bitmap barrow, barrowFront;
+    float bGripX, bGripH, bGroundY, bAxleX, bBinL, bBinR, bRimY, bFrontY, handX, handH;
     private final Context ctx;
     private final Map<String, Bitmap> cache = new HashMap<>();
 
@@ -25,9 +26,13 @@ final class Sprites {
         footX = (float) m.getDouble("footX"); footY = (float) m.getDouble("footY");
         weed = decode("weed.png");
         try {
-            JSONObject b = new JSONObject(read("frames/barrow.json"));
-            bw = b.getInt("w"); bh = b.getInt("h"); bFootX = (float) b.getDouble("footX"); bFootY = (float) b.getDouble("footY");
-        } catch (Exception ignored) {}
+            JSONObject b = new JSONObject(read("barrow.json"));
+            barrow = decode("barrow.png"); barrowFront = decode("barrow_front.png");
+            bGripX = (float) b.getDouble("gripX"); bGripH = (float) b.getDouble("gripH"); bGroundY = (float) b.getDouble("groundY");
+            bAxleX = (float) b.getDouble("axleX"); bBinL = (float) b.getDouble("binL"); bBinR = (float) b.getDouble("binR");
+            bRimY = (float) b.getDouble("rimY"); bFrontY = (float) b.getDouble("frontY");
+            handX = (float) b.getDouble("handX"); handH = (float) b.getDouble("handH");
+        } catch (Exception e) { barrow = null; }
     }
 
     Bitmap frame(String name) {

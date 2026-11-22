@@ -78,7 +78,13 @@ def load(name):
     if name == "master":
         return Image.open(MASTER).convert("RGB")
     p = os.path.join(KEYS, name + ".png")
-    return Image.open(p).convert("RGB") if os.path.exists(p) else None
+    if not os.path.exists(p):
+        return None
+    # 투명 배경 그림은 흰 바탕에 얹어서(그냥 RGB로 바꾸면 투명 부분이 검게 됨)
+    src = Image.open(p).convert("RGBA")
+    white = Image.new("RGBA", src.size, (255, 255, 255, 255))
+    white.alpha_composite(src)
+    return white.convert("RGB")
 
 
 def _wh(im):
