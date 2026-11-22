@@ -497,9 +497,15 @@ public final class CarrotService extends AccessibilityService {
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.START;
-        int sw = getResources().getDisplayMetrics().widthPixels;
-        lp.x = Math.round(Math.max(8 * dp, Math.min(sw - 200 * dp, gx + gw / 2f - 100 * dp)));
-        lp.y = Math.round(Math.max(24 * dp, gy - 190 * dp));
+        // 캬롯 몸 옆(넓은 쪽)에 띄워 정원 초대 모션이 가려지지 않게
+        int sw = getResources().getDisplayMetrics().widthPixels, sh = getResources().getDisplayMetrics().heightPixels;
+        box.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int mw = box.getMeasuredWidth(), mh = box.getMeasuredHeight();
+        float gap = 12 * dp;
+        boolean right = gx + gw / 2f < sw / 2f;
+        float mx = right ? gx + gw + gap : gx - mw - gap;
+        lp.x = Math.round(Math.max(8 * dp, Math.min(sw - mw - 8 * dp, mx)));
+        lp.y = Math.round(Math.max(24 * dp, Math.min(sh - mh - 24 * dp, gy + gh / 2f - mh / 2f)));
         box.setOnTouchListener((v, ev) -> { if (ev.getActionMasked() == MotionEvent.ACTION_OUTSIDE) hideMenu(); return false; });
         menu = box; wm.addView(box, lp);
     }
