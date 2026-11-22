@@ -129,7 +129,8 @@ final class Stage extends View {
         return slideFrom * (1 - k);
     }
     void slideIn(Map<String, Rect> screenIcons, float from) {
-        slideFrom = from; slideT0 = SystemClock.uptimeMillis();
+        // One UI는 넘김이 끝난 뒤에 신호를 몰아서 보낸다 → 미끄러지는 연출 없이 바로 그 자리에
+        slideFrom = 0;
         setScene(true, screenIcons);
     }
 
@@ -249,14 +250,14 @@ final class Stage extends View {
     void setScale(float k) { scale = k; invalidate(); }
 
     // 아이콘 칸(이름 글자 포함) 안의 아이콘 그림 자리(One UI 홈·앱스 화면 기준 비율)
-    static float iconSide(RectF r) { return r.width() * ICON_W; }
+    /** 칸 안에서 실제로 그려진 아이콘 판(둥근 덩어리) 자리. 화면 사진으로 잰 비율. */
     static RectF iconImage(RectF r) {
-        float s = iconSide(r), t = r.top + r.height() * ICON_TOP;
-        return new RectF(r.centerX() - s / 2, t, r.centerX() + s / 2, t + s);
+        float hw = r.width() * 0.245f;
+        return new RectF(r.centerX() - hw, r.top + r.height() * ICON_TOP, r.centerX() + hw, r.top + r.height() * ICON_BOTTOM);
     }
-    static float ICON_W = 0.51f, ICON_TOP = 0.33f;
-    /** 홈 화면과 앱스 화면은 칸 안 아이콘 그림 자리가 다르다(앱스 화면은 아래에 이름 글자). */
-    static void iconLayout(boolean apps) { ICON_W = apps ? 0.45f : 0.51f; ICON_TOP = apps ? 0.12f : 0.33f; }
+    static float ICON_TOP = 0.335f, ICON_BOTTOM = 0.73f;
+    /** 홈 화면과 앱스 화면은 칸 안 아이콘 판 자리가 다르다(앱스 화면은 아래에 이름 글자). */
+    static void iconLayout(boolean apps) { ICON_TOP = apps ? 0.27f : 0.335f; ICON_BOTTOM = apps ? 0.635f : 0.73f; }
     // 잡초 자리: 아이콘 그림 뒤에 뿌리(그림 가운데), 잎이 위·옆으로 삐져나온다 / 캬롯이 뽑을 때는 아이콘 아래쪽에 선다
     static float weedX(RectF r) { return r.centerX(); }
     static float weedY(RectF r) { RectF i = iconImage(r); return i.bottom; }
@@ -449,12 +450,12 @@ final class Stage extends View {
                 // 아이콘 그림 뒤에서 돋아나 살랑살랑(아이콘 그림 자리는 잘라 내고 그려서 뒤에 있는 것처럼)
                 RectF r = new RectF(e.getValue()); r.offset(slideOffset(), 0);
                 RectF img = iconImage(r);
-                float ww = img.width() * 1.25f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
-                float cx = img.centerX(), by = img.top + img.height() * 0.62f;
+                float ww = img.width() * 1.0f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
+                float cx = img.centerX(), by = img.top + img.height() * 0.6f;
                 float sway = (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + k.hashCode() % 7) * 4f;
                 c.save();
                 android.graphics.Path hole = new android.graphics.Path();
-                float rad = img.width() * 0.3f;
+                float rad = img.height() * 0.4f;
                 hole.addRoundRect(img, rad, rad, android.graphics.Path.Direction.CW);
                 c.clipOutPath(hole);
                 c.rotate(sway, cx, by);
