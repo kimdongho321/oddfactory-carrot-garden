@@ -46,10 +46,12 @@ final class Stage extends View {
         String at(long t, boolean loop) { return f[idx(t, loop)]; }
     }
     static final Clip WALK = new Clip("walk_lift_left", 150, "walk_pass_left_to_right", 110, "walk_lift_right", 150, "walk_pass_right_to_left", 110);
-    static final Clip CLAP = new Clip("master", 200, "clap_in_v2", 240, "clap_hit_v2", 200, "clap_out_v2", 160, "clap_hit_v2", 200,
-            "clap_out_v2", 160, "clap_hit_v2", 200, "clap_out_v2", 250, "master", 300);
-    static final Clip WATER = new Clip("i01a_water", 260, "i01_water", 300, "i01b_water", 300, "i01_water", 300, "i01b_water", 300,
-            "i01_water", 300, "i01b_water", 300, "i01a_water", 260, "master", 300);
+    // 박수: 1.75배 빠르게, 세 번 짝짝짝
+    static final Clip CLAP = new Clip("clap_in_v2", 137, "clap_hit_v2", 114, "clap_out_v2", 91, "clap_hit_v2", 114, "clap_out_v2", 91,
+            "clap_hit_v2", 114, "clap_out_v2", 143, "master", 171);
+    // 물주기: 1.5배 빠르게
+    static final Clip WATER = new Clip("i01a_water", 173, "i01_water", 200, "i01b_water", 200, "i01_water", 200, "i01b_water", 200,
+            "i01_water", 200, "i01b_water", 200, "i01a_water", 173, "master", 200);
     static final Clip GRAB = new Clip("wn_lower1", 160, "wn_lower2", 150, "wn_grab_v2", 220);
     static final Clip TUG = new Clip("wn_grab_v2", 220, "wn_lower2", 140);
     // 텃밭에서 뽑기 성공: 쑥 뽑음 → 뒤로 넘어가며 물러남 → 엉덩방아 → 주저앉아 웃음 → 일어남
@@ -66,9 +68,10 @@ final class Stage extends View {
             "e00_sprout@0.4", 70, "e00_sprout@0.05", 60);
 
     // 볼 당김(꾹 눌러 끌기): 앞 3장은 들어 올려지는 중, 뒤 2장을 누르고 있는 동안 반복
-    static final Clip PULL_IN = new Clip("pull_right_mid", 120, "pull_right_mid2", 140, "pull_right_peak", 160);
-    static final Clip PULL_LOOP = new Clip("pull_right_struggle_a", 150, "pull_right_struggle_b", 150);
-    static final Clip PULL_OUT = new Clip("pull_right_peak", 140, "pull_right_mid", 120, "master", 200);
+    // 볼 당김: 1.75배 빠르게
+    static final Clip PULL_IN = new Clip("pull_right_mid", 69, "pull_right_mid2", 80, "pull_right_peak", 91);
+    static final Clip PULL_LOOP = new Clip("pull_right_struggle_a", 86, "pull_right_struggle_b", 86);
+    static final Clip PULL_OUT = new Clip("pull_right_peak", 80, "pull_right_mid", 69, "master", 114);
     // 한 번 톡: 오늘의 수확(당근을 쑥 뽑아 들어 보임)
     static final Clip HARVEST = new Clip("master", 200, "h01_notice", 220, "m05_harvest", 240, "m05b_harvest_v2", 300,
             "h03_popout", 220, "k05_harvest", 1400, "master", 300);
@@ -271,7 +274,8 @@ final class Stage extends View {
 
     // ---- 상태 진행 ----
     void play(S st, Clip c) { s = st; act = c; t0 = SystemClock.uptimeMillis(); invalidate(); }
-    void idle(long ms) { s = S.IDLE; idleFor = ms; t0 = SystemClock.uptimeMillis(); target = null; }
+    /** 대기: 1.75배 빨리 다음 동작으로(그래도 최소 0.5초는 쉬었다가). */
+    void idle(long ms) { s = S.IDLE; idleFor = Math.max(500, Math.round(ms / 1.75)); t0 = SystemClock.uptimeMillis(); target = null; }
 
     String pick() {
         List<String> ks = new ArrayList<>(icons.keySet());
