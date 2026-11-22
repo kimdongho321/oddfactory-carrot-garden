@@ -57,7 +57,7 @@ import java.util.Set;
 public final class GardenActivity extends Activity {
     static volatile boolean open; // 열려 있는 동안은 홈 화면 위 캬롯을 숨긴다(텃밭 안의 캬롯과 겹치지 않게)
 
-    static final String[] CROPS = {"pumpkin", "carrot", "corn", "tomato", "cabbage", "potato", "radish"};
+    // 작물은 당근 한 가지(오늘 쓴 시간에 따라 4단계), 30일 넘게 안 쓴 앱은 잡초
     static final long DAY = 86_400_000L;
 
     static final class App {
@@ -65,7 +65,7 @@ public final class GardenActivity extends Activity {
     }
 
     float dp; Typeface bold, light;
-    GardenView garden; ScrollView scroll; TextView title; Button multiBtn, pullBtn;
+    GardenView garden; TextView title; Button multiBtn, pullBtn;
     final Handler h = new Handler(Looper.getMainLooper());
     LauncherApps la;
     final List<App> apps = new ArrayList<>();
@@ -79,11 +79,8 @@ public final class GardenActivity extends Activity {
         la = getSystemService(LauncherApps.class);
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(0xFFE9C793);
-        scroll = new ScrollView(this);
         garden = new GardenView();
-        scroll.addView(garden);
-        scroll.setOnScrollChangeListener((v, x, y, ox, oy) -> garden.invalidate());
-        root.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(garden, new FrameLayout.LayoutParams(-1, -1));
 
         // 위쪽 띠: 제목 + 여러 개 뽑기
         LinearLayout bar = new LinearLayout(this); bar.setOrientation(LinearLayout.HORIZONTAL); bar.setGravity(Gravity.CENTER_VERTICAL);
@@ -157,7 +154,6 @@ public final class GardenActivity extends Activity {
                 App x = new App(); x.pkg = pkg; x.user = a.getUser(); x.label = String.valueOf(a.getLabel());
                 ApplicationInfo ai = a.getApplicationInfo();
                 x.system = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
-                x.crop = cropOf(ai);
                 x.todayMs = today.containsKey(pkg) ? today.get(pkg) : 0;
                 x.lastUsed = last.containsKey(pkg) ? last.get(pkg) : 0;
                 long installed = 0; try { PackageInfo pi = pm.getPackageInfo(pkg, 0); installed = pi.firstInstallTime; } catch (Exception ignored) {}
@@ -264,13 +260,13 @@ public final class GardenActivity extends Activity {
     final class GardenView extends View {
         final Paint px = new Paint(), text = new Paint(Paint.ANTI_ALIAS_FLAG), box = new Paint(Paint.ANTI_ALIAS_FLAG);
         final Map<String, Bitmap> art = new HashMap<>();
-        Bitmap header, dirt, sign, weedBmp; Paint dirtPaint;
+        Bitmap header, dirt, sign, weedBmp; Paint dirtPaint, fadePaint; float fadeH;
         final float[] panel = {0.24f, 0.25f, 0.76f, 0.61f}; // 팻말 그림 안 아이콘 자리(비율)
         final Map<App, Long> yanking = new HashMap<>();     // 뽑혀 날아가는 칸(시작 시각)
         Sprites sp;
         final List<RectF> cells = new ArrayList<>();
         int cols = 3; float cellW, cellH, top0;
-        final GestureDetector gd;
+
         final Random rnd = new Random();
         boolean running; boolean barrowMode;
 
@@ -291,14 +287,7 @@ public final class GardenActivity extends Activity {
                 org.json.JSONArray pnl = new org.json.JSONObject(new String(in.readAllBytes(), "UTF-8")).getJSONObject("b").getJSONArray("panel");
                 for (int i = 0; i < 4; i++) panel[i] = (float) pnl.getDouble(i);
             } catch (Exception ignored) {}
-            for (String c : CROPS) for (int s = 0; s < 4; s++) art.put(c + s, asset("garden/" + c + "_" + s + ".png"));
-            gd = new GestureDetector(GardenActivity.this, new GestureDetector.SimpleOnGestureListener() {
-                @Override public boolean onDown(MotionEvent e) { return true; }
-                @Override public boolean onSingleTapUp(MotionEvent e) {
-                    for (int i = 0; i < cells.size() && i < apps.size(); i++) if (cells.get(i).contains(e.getX(), e.getY())) { tapped(apps.get(i)); return true; }
-                    return false;
-                }
-            });
+            for (int s = 0; s < 4; s++) art.put("carrot" + s, asset("garden/carrot_" + s + ".png"));
         }
 
         Bitmap asset(String p) {
@@ -306,28 +295,86 @@ public final class GardenActivity extends Activity {
             catch (Exception e) { return null; }
         }
 
-        @Override public boolean onTouchEvent(MotionEvent e) { return gd.onTouchEvent(e) || super.onTouchEvent(e); }
+        // ---- 페이지 넘김(홈 화면처럼 옆으로) ----
+        float pageX; int page, pages = 1, perPage = 1;  // pageX: 지금 보이는 가로 위치(px)
+        float downX, downY, startPageX; boolean dragging; android.view.VelocityTracker vt;
+        android.animation.ValueAnimator snap;
+
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            int W = getWidth();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (snap != null) snap.cancel();
+                    downX = e.getX(); downY = e.getY(); startPageX = pageX; dragging = false;
+                    vt = android.view.VelocityTracker.obtain(); vt.addMovement(e); return true;
+                case MotionEvent.ACTION_MOVE:
+                    if (vt != null) vt.addMovement(e);
+                    float dx = e.getX() - downX;
+                    if (!dragging && Math.abs(dx) > 8 * dp) dragging = true;
+                    if (dragging) {
+                        float x = startPageX - dx, max = (pages - 1) * W;
+                        if (x < 0) x *= 0.35f; else if (x > max) x = max + (x - max) * 0.35f; // 끝에서는 살짝만 끌림
+                        pageX = x; invalidate();
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (dragging) {
+                        float v = 0; if (vt != null) { vt.addMovement(e); vt.computeCurrentVelocity(1000); v = vt.getXVelocity(); }
+                        int to = Math.round(pageX / W);
+                        if (Math.abs(v) > 600 * dp / 1.5f) to = v < 0 ? (int) Math.floor(startPageX / W) + 1 : (int) Math.ceil(startPageX / W) - 1;
+                        goPage(to, null);
+                    } else if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+                        float wx = e.getX() + pageX, wy = e.getY();
+                        for (int i = 0; i < cells.size() && i < apps.size(); i++) if (cells.get(i).contains(wx, wy)) { tapped(apps.get(i)); break; }
+                    }
+                    if (vt != null) { vt.recycle(); vt = null; }
+                    dragging = false; return true;
+            }
+            return true;
+        }
+
+        void goPage(int to, Runnable after) {
+            int W = getWidth();
+            to = Math.max(0, Math.min(pages - 1, to));
+            int target = to; page = to;
+            if (snap != null) snap.cancel();
+            snap = android.animation.ValueAnimator.ofFloat(pageX, target * W);
+            snap.setDuration(Math.min(320, (long) (Math.abs(pageX - target * W) / W * 320) + 80));
+            snap.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+            snap.addUpdateListener(an -> { pageX = (float) an.getAnimatedValue(); invalidate(); });
+            snap.addListener(new android.animation.AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(android.animation.Animator an) { if (after != null) after.run(); }
+            });
+            snap.start();
+        }
 
         void layoutCells() {
             cells.clear();
-            float w = getResources().getDisplayMetrics().widthPixels;
-            cols = w / dp > 600 ? 5 : 3;
-            cellW = w / cols; cellH = cellW * 1.25f;
+            float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
+            float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
+            cols = W / dp > 600 ? 5 : 3;
+            cellW = W / cols; cellH = cellW * 1.25f;
             top0 = headerH();
+            float avail = H - top0 - 46 * dp;                    // 아래 페이지 점 자리
+            int rows = Math.max(1, (int) (avail / cellH));
+            perPage = rows * cols;
+            float gridTop = top0 + (avail - rows * cellH) / 2f;   // 남는 높이는 위아래로 나눔
+            pages = Math.max(1, (apps.size() + perPage - 1) / perPage);
             for (int i = 0; i < apps.size(); i++) {
-                int r = i / cols, c = i % cols;
-                cells.add(new RectF(c * cellW, top0 + r * cellH, (c + 1) * cellW, top0 + (r + 1) * cellH));
+                int p = i / perPage, j = i % perPage, r = j / cols, c = j % cols;
+                float x = p * W + c * cellW, y = gridTop + r * cellH;
+                cells.add(new RectF(x, y, x + cellW, y + cellH));
             }
-            requestLayout(); invalidate();
-            if (Float.isNaN(cx) && !cells.isEmpty()) { RectF r = cells.get(0); cx = r.centerX(); cy = r.bottom - cellH * 0.1f; idle(1000); }
+            if (page > pages - 1) { page = pages - 1; pageX = page * W; }
+            invalidate();
+            if (Float.isNaN(cx) && !cells.isEmpty()) { RectF r = cells.get(0); cx = r.centerX(); cy = r.top + r.height() * 0.68f; idle(1000); }
         }
-        float headerH() { return header == null ? 120 * dp : getResources().getDisplayMetrics().widthPixels * 0.55f; }
+        float headerH() { return getResources().getDisplayMetrics().widthPixels * 0.5f; }
+        @Override protected void onSizeChanged(int w, int h, int ow, int oh) { layoutCells(); }
 
-        @Override protected void onMeasure(int w, int h) {
-            int rows = (apps.size() + cols - 1) / Math.max(1, cols);
-            int height = (int) (headerH() + rows * cellH + 80 * dp);
-            setMeasuredDimension(MeasureSpec.getSize(w), Math.max(height, getResources().getDisplayMetrics().heightPixels));
-        }
+        /** 지금 페이지에 보이는 칸(화면 좌표). */
+        RectF onScreen(int i) { RectF r = new RectF(cells.get(i)); r.offset(-page * getWidth(), 0); return r; }
 
         // ---- 그리기 ----
         @Override protected void onDraw(Canvas c) {
@@ -337,19 +384,36 @@ public final class GardenActivity extends Activity {
                     dirtPaint.setShader(new android.graphics.BitmapShader(dirt, android.graphics.Shader.TileMode.REPEAT, android.graphics.Shader.TileMode.REPEAT)); }
                 c.drawRect(0, 0, W, getHeight(), dirtPaint);
             }
-            float vt = scroll.getScrollY(), vb = vt + scroll.getHeight();
             // 하늘·언덕 머리 그림(배경화면 위쪽) + 그 아래는 흙
             if (header != null) {
                 float hh = headerH();
                 Rect src = new Rect(0, 0, header.getWidth(), (int) (header.getWidth() * hh / W));
                 c.drawBitmap(header, src, new RectF(0, 0, W, hh), px);
+                // 아래 30%는 흙 무늬를 점점 진하게 덮어 풍경이 흙밭으로 자연스럽게 이어지게
+                if (dirt != null) {
+                    if (fadePaint == null || fadeH != hh) {
+                        fadeH = hh;
+                        android.graphics.Shader ds = new android.graphics.BitmapShader(dirt, android.graphics.Shader.TileMode.REPEAT, android.graphics.Shader.TileMode.REPEAT);
+                        android.graphics.Shader fade = new android.graphics.LinearGradient(0, hh * 0.7f, 0, hh, 0x00000000, 0xFF000000, android.graphics.Shader.TileMode.CLAMP);
+                        fadePaint = new Paint(); fadePaint.setShader(new android.graphics.ComposeShader(ds, fade, android.graphics.PorterDuff.Mode.DST_IN));
+                    }
+                    c.drawRect(0, hh * 0.7f, W, hh + 1, fadePaint);
+                }
             }
+            c.save(); c.translate(-pageX, 0);
             for (int i = 0; i < cells.size() && i < apps.size(); i++) {
                 RectF r = cells.get(i);
-                if (r.bottom < vt - cellH || r.top > vb + cellH) continue;
+                if (r.right < pageX || r.left > pageX + W) continue;
                 drawCell(c, r, apps.get(i));
             }
-            drawCarrot(c);
+            c.restore();
+            // 페이지 점
+            float dy = getHeight() - 24 * dp, gap = 14 * dp, x0 = W / 2f - (pages - 1) * gap / 2f;
+            for (int i = 0; i < pages; i++) {
+                boolean on = i == Math.round(pageX / Math.max(1, W));
+                box.setColor(on ? 0xFF3A2418 : 0x803A2418); c.drawCircle(x0 + i * gap, dy, (on ? 4.5f : 3.2f) * dp, box);
+            }
+            // (텃밭 안 캬롯은 없음: 화면 위 캬롯 하나만)
         }
 
         void drawCell(Canvas c, RectF r, App a) {
@@ -363,7 +427,7 @@ public final class GardenActivity extends Activity {
             Paint ap = new Paint(px); ap.setAlpha(alpha);
             c.save(); c.translate(0, -lift);
             // 작물(또는 잡초): 같은 작물은 4단계가 같은 높이 기준이라 그대로 그리면 자란 정도가 보인다
-            Bitmap plant = a.weed ? weedBmp : art.get(CROPS[a.crop] + a.stage);
+            Bitmap plant = a.weed ? weedBmp : art.get("carrot" + a.stage);
             float ph = r.height() * (a.weed ? 0.46f : 0.6f), pb = r.top + r.height() * 0.68f, pcx = r.centerX() - r.width() * 0.1f;
             if (plant != null) {
                 float pw = ph * plant.getWidth() / plant.getHeight();
@@ -418,34 +482,31 @@ public final class GardenActivity extends Activity {
         void goPull(App a, Runnable grabbed) {
             job = a; onGrab = grabbed;
             int i = apps.indexOf(a); if (i < 0) { grabbed.run(); return; }
-            RectF r = cells.get(i);
-            // 칸이 화면 밖이면 그쪽으로 스크롤
-            scroll.smoothScrollTo(0, (int) Math.max(0, r.centerY() - scroll.getHeight() / 2f));
-            tx = r.centerX() - charH() * 0.285f; ty = r.top + r.height() * 0.62f;
-            faceRight = tx > cx; play("walk", Stage.WALK);
+            int pg = i / perPage;
+            Runnable go = () -> { Runnable r = onGrab; onGrab = null; if (r != null) r.run(); };
+            if (pg != page) goPage(pg, go); else go.run();
         }
         void popped(App a) {
-            play("pop", Stage.POP); loadedCount++;
+            loadedCount++;
             yanking.put(a, SystemClock.uptimeMillis());
             h.postDelayed(() -> { yanking.remove(a); apps.remove(a); layoutCells(); nextInQueue(); }, Math.max(750, Stage.POP.total));
         }
         void cancelled(App a) { job = null; idle(800); }
         void queueDone() {
-            if (barrowMode && loadedCount > 1) { barrowMode = false; tx = getWidth() + charH(); faceRight = true; play("barrow", null); }
+            barrowMode = false;
             loadedCount = 0; job = null;
         }
 
         void step(float dt) {
             long t = SystemClock.uptimeMillis() - t0;
-            float vt = scroll.getScrollY();
             switch (st) {
                 case "idle":
                     if (job == null && t >= idleFor) { // 화면에 보이는 칸 근처로 1.5초 산책
                         List<RectF> vis = new ArrayList<>();
-                        for (RectF r : cells) if (r.top > vt && r.bottom < vt + scroll.getHeight()) vis.add(r);
-                        if (vis.isEmpty()) { idle(1000); break; }
+                        for (int i = page * perPage; i < Math.min(cells.size(), (page + 1) * perPage); i++) vis.add(onScreen(i));
+                        if (vis.isEmpty() || dragging) { idle(1000); break; }
                         RectF r = vis.get(rnd.nextInt(vis.size()));
-                        tx = r.centerX() - charH() * 0.3f; ty = r.top + r.height() * 0.62f; faceRight = tx > cx; play("walk", Stage.WALK);
+                        tx = r.centerX() - charH() * 0.3f; ty = r.top + r.height() * 0.68f; faceRight = tx > cx; play("walk", Stage.WALK);
                     }
                     break;
                 case "walk": {
@@ -493,7 +554,7 @@ public final class GardenActivity extends Activity {
         final Runnable tick = new Runnable() { @Override public void run() {
             if (!running) return;
             long now = SystemClock.uptimeMillis(); float dt = Math.min(0.1f, (now - last) / 1000f); last = now;
-            if (!Float.isNaN(cx)) step(dt);
+            // 잡초 흔들림·뽑힘 연출만 매 프레임 다시 그림
             invalidate(); postOnAnimation(this);
         } };
         void resume() { if (running) return; running = true; last = SystemClock.uptimeMillis(); postOnAnimation(tick); }

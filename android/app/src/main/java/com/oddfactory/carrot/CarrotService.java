@@ -325,7 +325,7 @@ public final class CarrotService extends AccessibilityService {
             String activePkg = active != null && active.getPackageName() != null ? active.getPackageName().toString() : "";
             home = activePkg.equals(launcher);
             boolean installer = activePkg.contains("packageinstaller") && stage.shownOnHome; // 삭제 확인 창 동안은 계속 보인다
-            boolean ours = activePkg.equals(getPackageName()) && !GardenActivity.open; // 텃밭 화면 안에는 캬롯이 따로 있다
+            boolean ours = activePkg.equals(getPackageName());
             boolean other = everywhere(prefs) && !activePkg.isEmpty() && !activePkg.equals("com.android.systemui");
             visible = home || installer || ours || other;
             if (home || installer) {
