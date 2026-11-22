@@ -96,7 +96,7 @@ public final class GardenActivity extends Activity {
 
         // 위: 검색칸 + 상태 한 줄
         LinearLayout top = new LinearLayout(this); top.setOrientation(LinearLayout.VERTICAL);
-        int p = (int) (10 * dp); top.setPadding(p, (int) (p * 1.6f), p, (int) (p * 0.6f));
+        int p = (int) (10 * dp); top.setPadding(p, (int) (48 * dp), p, (int) (p * 0.6f)); // 상태 표시줄 아래로 넉넉히 내림
         search = new EditText(this);
         search.setHint("🔍  앱 검색"); search.setSingleLine(true); search.setTypeface(bold); search.setTextSize(16);
         search.setTextColor(0xFF3A2418); search.setHintTextColor(0x993A2418);
@@ -548,10 +548,10 @@ public final class GardenActivity extends Activity {
             float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
             float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
             cols = Math.max(4, Math.min(8, Math.round(W / (100 * dp)))); // 폭에 맞춰(접힘 4칸, 펼침 7~8칸)
-            cellW = W / cols; cellH = cellW * 1.18f;
-            float topUi = 100 * dp, bottomUi = 58 * dp;
+            float topUi = 136 * dp, bottomUi = 62 * dp;
             float avail = H - topUi - bottomUi;
-            rows = Math.max(1, (int) (avail / cellH));
+            rows = 4;                                   // 한 페이지 4줄 고정
+            cellW = W / cols; cellH = Math.min(avail / rows, cellW * 1.45f);
             perPage = rows * cols;
             gridTop = topUi + (avail - rows * cellH) / 2f;
             for (int r = 0; r < rows; r++) rowsY.add(gridTop + r * cellH);
