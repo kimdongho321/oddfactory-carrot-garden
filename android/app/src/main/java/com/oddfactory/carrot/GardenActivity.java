@@ -70,7 +70,7 @@ public final class GardenActivity extends Activity {
     static final int[] HATNIM_MS = {160, 170, 170, 230, 180, 900};
 
     static final class App {
-        String pkg, label, key; UserHandle user; Bitmap icon; long todayMs, lastUsed; boolean weed, system;
+        String pkg, label, key, initials; UserHandle user; Bitmap icon; long todayMs, lastUsed; boolean weed, system;
     }
 
     float dp; Typeface bold, light;
@@ -205,6 +205,7 @@ public final class GardenActivity extends Activity {
                 if (pkg.equals(getPackageName())) continue;
                 App x = new App(); x.pkg = pkg; x.user = a.getUser(); x.label = String.valueOf(a.getLabel());
                 x.key = x.label.toLowerCase(Locale.ROOT).replace(" ", "");
+                x.initials = initials(x.key);
                 ApplicationInfo ai = a.getApplicationInfo();
                 x.system = (ai.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
                 x.todayMs = today.containsKey(pkg) ? today.get(pkg) : 0;
@@ -226,12 +227,26 @@ public final class GardenActivity extends Activity {
     void applyFilter() {
         String q = search.getText().toString().toLowerCase(Locale.ROOT).replace(" ", "");
         shown.clear();
-        for (App a : apps) if (q.isEmpty() || a.key.contains(q)) shown.add(a);
+        boolean jamo = isAllInitials(q); // 'ㅋㅋㅇㅌ' 같은 초성 검색(One UI 앱스 화면처럼)
+        for (App a : apps) if (q.isEmpty() || a.key.contains(q) || a.pkg.contains(q) || (jamo && a.initials.contains(q))) shown.add(a);
         int weeds = 0; for (App a : apps) if (a.weed) weeds++;
         status.setText(!usageAllowed() ? "사용 기록을 허용하면 잡초(오래 안 쓴 앱)가 보여요"
                 : q.isEmpty() ? "당근 " + (apps.size() - weeds) + " · 잡초 " + weeds : "찾은 앱 " + shown.size());
         garden.page = 0; garden.pageX = 0;
         garden.layoutCells();
+    }
+
+    static final char[] CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ".toCharArray();
+    /** 한글 음절은 초성으로, 나머지 글자는 그대로. */
+    static String initials(String s) {
+        StringBuilder b = new StringBuilder();
+        for (char ch : s.toCharArray()) b.append(ch >= 0xAC00 && ch <= 0xD7A3 ? CHO[(ch - 0xAC00) / 588] : ch);
+        return b.toString();
+    }
+    static boolean isAllInitials(String q) {
+        if (q.isEmpty()) return false;
+        for (char ch : q.toCharArray()) if (ch < 0x3131 || ch > 0x314E) return false;
+        return true;
     }
 
     static Bitmap toBitmap(Drawable d, int px) {
@@ -398,7 +413,7 @@ public final class GardenActivity extends Activity {
     /** 텃밭 그림: 풀밭 바탕, 줄마다 이랑, 칸마다 당근/잡초 + 팻말(진짜 아이콘) + 이름. */
     final class GardenView extends View {
         final Paint px = new Paint(), text = new Paint(Paint.ANTI_ALIAS_FLAG), box = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Bitmap sky, grass, bed, sign, weedBmp, carrot; Paint grassPaint;
+        Bitmap sky, skyWide, grass, bed, sign, weedBmp, carrot; Paint grassPaint;
         final Bitmap[] hatnim = new Bitmap[6];
         final float[] panel = {0.24f, 0.25f, 0.76f, 0.61f};
         final Map<App, Long> yanking = new HashMap<>();
@@ -413,6 +428,7 @@ public final class GardenActivity extends Activity {
             px.setFilterBitmap(false);
             text.setTypeface(bold); text.setColor(0xFF3A2418); text.setTextAlign(Paint.Align.CENTER);
             sky = asset("garden_wallpaper.jpg");
+            skyWide = asset("garden/garden_wide.jpg"); // 펼친 화면(가로가 넓은 화면)용
             weedBmp = asset("weed.png");
             grass = asset("garden/grass.jpg");
             bed = asset("garden/bed.png");
@@ -519,7 +535,7 @@ public final class GardenActivity extends Activity {
             cells.clear(); rowsY.clear();
             float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
             float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
-            cols = W / dp > 600 ? 5 : 4;
+            cols = Math.max(4, Math.min(8, Math.round(W / (100 * dp)))); // 폭에 맞춰(접힘 4칸, 펼침 7~8칸)
             cellW = W / cols; cellH = cellW * 1.18f;
             float topUi = 100 * dp, bottomUi = 58 * dp;
             float avail = H - topUi - bottomUi;
@@ -543,10 +559,11 @@ public final class GardenActivity extends Activity {
         @Override protected void onDraw(Canvas c) {
             int W = getWidth(), H = getHeight();
             // 배경: 텃밭 풍경 한 장을 화면 가득(가운데 맞춰 자름). 땅·하늘을 나누지 않는다.
-            if (sky != null) {
-                float k = Math.max(W / (float) sky.getWidth(), H / (float) sky.getHeight());
-                float bw = sky.getWidth() * k, bh = sky.getHeight() * k;
-                c.drawBitmap(sky, null, new RectF((W - bw) / 2f, (H - bh) / 2f, (W + bw) / 2f, (H + bh) / 2f), px);
+            Bitmap bg = skyWide != null && W > H * 0.8f ? skyWide : sky; // 화면 비율에 맞는 그림
+            if (bg != null) {
+                float k = Math.max(W / (float) bg.getWidth(), H / (float) bg.getHeight());
+                float bw = bg.getWidth() * k, bh = bg.getHeight() * k;
+                c.drawBitmap(bg, null, new RectF((W - bw) / 2f, (H - bh) / 2f, (W + bw) / 2f, (H + bh) / 2f), px);
             } else c.drawColor(0xFFE9C793);
             c.save(); c.translate(-pageX, 0);
             for (int i = 0; i < cells.size() && i < shown.size(); i++) {
