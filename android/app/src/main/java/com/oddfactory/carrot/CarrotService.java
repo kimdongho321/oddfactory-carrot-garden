@@ -69,8 +69,13 @@ public final class CarrotService extends AccessibilityService {
     Set<String> lastSelected = new HashSet<>();
     boolean selecting;
     long lastLog;
+    // 페이지 넘김: One UI는 넘길 때 scrollX(페이지 폭 단위)를 알려 준다 → 페이지마다 아이콘 자리를 기억해 두고 바로 꺼내 쓴다
+    final Map<String, Map<String, Rect>> pageCache = new HashMap<>();
+    String screenKey = "home"; int curPage = -1; long lastScrollAt; float pageW = 0; int lastSettledX = Integer.MIN_VALUE;
+    Map<String, Rect> lastIcons = new LinkedHashMap<>();
     int scrollLogLeft = 400;
     String lastSig = "";
+    boolean hotseatSeen;
 
     static boolean shown(SharedPreferences p) { return p.getBoolean("shown", false); }
     static boolean everywhere(SharedPreferences p) { return p.getBoolean("everywhere", true); }
@@ -198,6 +203,38 @@ public final class CarrotService extends AccessibilityService {
         }
     };
     final Runnable scanSoon = this::scan;
+
+    float pageWidth() {
+        if (pageW > 0) return pageW;
+        return getResources().getDisplayMetrics().widthPixels * 0.9535f; // 첫 넘김 전 추정(넘겨 보면 실제 값을 배운다)
+    }
+
+    void onPageScroll(int x, int dx) {
+        long now = SystemClock.uptimeMillis();
+        float pw = pageWidth();
+        boolean start = now - lastScrollAt > 450;
+        lastScrollAt = now;
+        if (start && dx != 0) {
+            int from = Math.round((x - dx) / pw);
+            if (curPage != from && !lastIcons.isEmpty()) pageCache.put(screenKey + ":" + from, new LinkedHashMap<>(lastIcons));
+            int to = dx > 0 ? (int) Math.ceil(x / pw - 0.02f) : (int) Math.floor(x / pw + 0.02f);
+            if (to == from) to = from + (dx > 0 ? 1 : -1);
+            curPage = to;
+            Map<String, Rect> next = pageCache.get(screenKey + ":" + to);
+            // 다음 페이지를 본 적 있으면 바로 그 잡초를 옆에서 밀어 넣고, 처음이면 일단 비운다(멈추면 읽어서 채움)
+            stage.slideIn(next != null ? next : new LinkedHashMap<>(), dx > 0 ? pw : -pw);
+            lastIcons = next != null ? next : new LinkedHashMap<>();
+            log("page " + screenKey + " " + from + "->" + to + (next != null ? " cached" : " new"));
+        }
+        if (Math.abs(dx) <= 2) { // 멈춤
+            curPage = Math.round(x / pw);
+            if (lastSettledX != Integer.MIN_VALUE && x != lastSettledX) {
+                float d = Math.abs(x - lastSettledX); int n = Math.round(d / pw);
+                if (n >= 1) pageW = d / n;
+            }
+            lastSettledX = x;
+        }
+    }
     final Runnable settle1 = this::scan, settle2 = this::scan, settle3 = this::scan;
     long lastScanAt;
     /** 화면이 바뀌는 중(페이지 넘김 등): 최대 60ms마다 바로 읽고, 멈춘 뒤에도 0.12·0.3·0.6초에 다시 읽어 잡초 위치를 맞춘다. */
@@ -222,6 +259,8 @@ public final class CarrotService extends AccessibilityService {
             String t = eventLabel(e);
             if (t != null && t.contains("삭제") && (pkg.equals(launcher) || pkg.contains("packageinstaller"))) onDeleteTapped(pkg, t);
         }
+        if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED && pkg.equals(launcher) && e.getMaxScrollX() == 0 && e.getScrollX() > 0
+                && Build.VERSION.SDK_INT >= 28) onPageScroll(e.getScrollX(), e.getScrollDeltaX());
         if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED && pkg.equals(launcher) && scrollLogLeft > 0) { // 페이지 넘김 신호 조사용(최근 400개만)
             scrollLogLeft--;
             log("scroll " + e.getClassName() + " x=" + e.getScrollX() + "/" + e.getMaxScrollX() + " y=" + e.getScrollY()
@@ -294,14 +333,32 @@ public final class CarrotService extends AccessibilityService {
                     AccessibilityNodeInfo r = w.getRoot();
                     if (r == null || r.getPackageName() == null || !r.getPackageName().toString().equals(launcher)) continue;
                     List<Rect> checked = new ArrayList<>();
+                    hotseatSeen = false;
                     anyCheckable |= collect(r, icons, checked, 0);
+                    String key = hotseatSeen ? "home" : "apps";
+                    if (!key.equals(screenKey)) { screenKey = key; curPage = -1; lastSettledX = Integer.MIN_VALUE; }
+                    Stage.iconLayout(key.equals("apps"));
                     for (Rect c : checked) for (Map.Entry<String, Rect> e : icons.entrySet()) if (Rect.intersects(e.getValue(), c)) selected.add(e.getKey());
                 }
             }
         }
-        stage.setScene(visible, icons);
+        boolean scrolling = SystemClock.uptimeMillis() - lastScrollAt < 450;
+        if (home && scrolling) {
+            // 넘기는 중에는 움직이는 화면을 읽은 값 대신 기억해 둔 페이지 값을 쓴다
+            stage.setScene(visible, lastIcons);
+        } else {
+            stage.setScene(visible, icons);
+            if (home && !icons.isEmpty()) {
+                lastIcons = icons;
+                if (curPage >= 0) pageCache.put(screenKey + ":" + curPage, new LinkedHashMap<>(icons));
+            }
+        }
         String sig = visible + " " + home + " " + icons.size();
-        if (!sig.equals(lastSig)) { lastSig = sig; log("scene visible=" + visible + " home=" + home + " icons=" + icons.keySet()); }
+        if (!sig.equals(lastSig)) {
+            lastSig = sig;
+            Rect f = icons.isEmpty() ? null : icons.values().iterator().next();
+            log("scene visible=" + visible + " home=" + home + " " + screenKey + ":" + curPage + " first=" + (f == null ? "-" : f.toShortString()) + " icons=" + icons.keySet());
+        }
         // 선택 모드(체크 칸이 보임)
         if (anyCheckable) {
             if (!selecting) { selecting = true; logTree("selection mode"); }
@@ -319,6 +376,7 @@ public final class CarrotService extends AccessibilityService {
         n.getBoundsInScreen(r);
         String id = n.getViewIdResourceName();
         if (n.isCheckable()) { checkable = true; if (n.isChecked()) checked.add(r); }
+        if (id != null && id.endsWith("/hotseat_container")) hotseatSeen = true;
         boolean iconLike = id != null ? id.endsWith("/icon_container") || id.endsWith("/icon_view_container")
                 : (n.isClickable() && n.getContentDescription() != null);
         float dp = getResources().getDisplayMetrics().density;

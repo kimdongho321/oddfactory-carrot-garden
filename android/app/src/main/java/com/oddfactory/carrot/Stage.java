@@ -120,6 +120,19 @@ final class Stage extends View {
         px.setFilterBitmap(false); px.setAntiAlias(false);
     }
 
+    // 페이지 넘김: 기억해 둔 다음 페이지 잡초를 화면과 함께 옆에서 미끄러져 들어오게
+    float slideFrom; long slideT0; static final long SLIDE_MS = 380;
+    float slideOffset() {
+        long t = SystemClock.uptimeMillis() - slideT0;
+        if (slideFrom == 0 || t >= SLIDE_MS) return 0;
+        float k = t / (float) SLIDE_MS; k = 1 - (1 - k) * (1 - k) * (1 - k); // 처음 빠르고 끝에 느리게
+        return slideFrom * (1 - k);
+    }
+    void slideIn(Map<String, Rect> screenIcons, float from) {
+        slideFrom = from; slideT0 = SystemClock.uptimeMillis();
+        setScene(true, screenIcons);
+    }
+
     // ---- 서비스에서 들어오는 정보 ----
     /** visible: 지금 캐릭터를 보일지. screenIcons: 홈 화면이면 아이콘(라벨→화면 좌표), 다른 앱 위면 비어 있음(바닥 모드). */
     void setScene(boolean visible, Map<String, Rect> screenIcons) {
@@ -235,9 +248,18 @@ final class Stage extends View {
     void setStale(Set<String> labels) { stale = labels; invalidate(); }
     void setScale(float k) { scale = k; invalidate(); }
 
-    // 잡초 자리: 아이콘 그림 위에서 돋아난 것처럼(아이콘 그림 가운데 아래쪽에 뿌리)
+    // 아이콘 칸(이름 글자 포함) 안의 아이콘 그림 자리(One UI 홈·앱스 화면 기준 비율)
+    static float iconSide(RectF r) { return r.width() * ICON_W; }
+    static RectF iconImage(RectF r) {
+        float s = iconSide(r), t = r.top + r.height() * ICON_TOP;
+        return new RectF(r.centerX() - s / 2, t, r.centerX() + s / 2, t + s);
+    }
+    static float ICON_W = 0.51f, ICON_TOP = 0.33f;
+    /** 홈 화면과 앱스 화면은 칸 안 아이콘 그림 자리가 다르다(앱스 화면은 아래에 이름 글자). */
+    static void iconLayout(boolean apps) { ICON_W = apps ? 0.45f : 0.51f; ICON_TOP = apps ? 0.12f : 0.33f; }
+    // 잡초 자리: 아이콘 그림 뒤에 뿌리(그림 가운데), 잎이 위·옆으로 삐져나온다 / 캬롯이 뽑을 때는 아이콘 아래쪽에 선다
     static float weedX(RectF r) { return r.centerX(); }
-    static float weedY(RectF r) { return r.top + r.height() * 0.64f; }
+    static float weedY(RectF r) { RectF i = iconImage(r); return i.bottom; }
 
     // ---- 크기 ----
     /** 캐릭터 키: 화면(홈·다른 앱)과 관계없이 항상 같은 크기. 설정의 크기 배율만 반영. */
@@ -424,12 +446,18 @@ final class Stage extends View {
                 String k = e.getKey();
                 boolean weedy = (stale.contains(k) || queue.contains(k) || k.equals(waitingRemoval)) && !pulled.contains(k);
                 if (!weedy || (holding && k.equals(target))) continue;
-                // 아이콘 그림 오른쪽 아래 모서리에서 돋아나 살랑살랑(칸마다 박자를 조금씩 다르게)
-                RectF r = e.getValue();
-                float ww = r.width() * 0.5f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
-                float cx = weedX(r), by = weedY(r);
-                float sway = (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + k.hashCode() % 7) * 5f;
-                c.save(); c.rotate(sway, cx, by);
+                // 아이콘 그림 뒤에서 돋아나 살랑살랑(아이콘 그림 자리는 잘라 내고 그려서 뒤에 있는 것처럼)
+                RectF r = new RectF(e.getValue()); r.offset(slideOffset(), 0);
+                RectF img = iconImage(r);
+                float ww = img.width() * 1.25f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
+                float cx = img.centerX(), by = img.top + img.height() * 0.62f;
+                float sway = (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + k.hashCode() % 7) * 4f;
+                c.save();
+                android.graphics.Path hole = new android.graphics.Path();
+                float rad = img.width() * 0.3f;
+                hole.addRoundRect(img, rad, rad, android.graphics.Path.Direction.CW);
+                c.clipOutPath(hole);
+                c.rotate(sway, cx, by);
                 c.drawBitmap(sp.weed, null, new RectF(cx - ww / 2, by - wh * 0.9f, cx + ww / 2, by + wh * 0.1f), px);
                 c.restore();
             }
