@@ -111,6 +111,7 @@ public final class GardenActivity extends Activity {
         top.addView(search, new LinearLayout.LayoutParams(-1, (int) (46 * dp)));
         status = new TextView(this); status.setTypeface(bold); status.setTextSize(13); status.setTextColor(0xFFFFFFFF);
         status.setShadowLayer(3 * dp, 0, 1 * dp, 0xCC3A2418); status.setPadding((int) (6 * dp), (int) (4 * dp), 0, 0);
+        status.setVisibility(View.GONE); // 개수 문구는 보여 주지 않음
         top.addView(status);
         root.addView(top, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
 
@@ -548,7 +549,7 @@ public final class GardenActivity extends Activity {
             float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
             float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
             cols = Math.max(4, Math.min(8, Math.round(W / (100 * dp)))); // 폭에 맞춰(접힘 4칸, 펼침 7~8칸)
-            float topUi = 136 * dp, bottomUi = 62 * dp;
+            float topUi = 112 * dp, bottomUi = 62 * dp;
             float avail = H - topUi - bottomUi;
             rows = 4;                                   // 한 페이지 4줄 고정
             cellW = W / cols; cellH = Math.min(avail / rows, cellW * 1.45f);
