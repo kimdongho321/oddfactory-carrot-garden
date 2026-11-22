@@ -89,7 +89,7 @@ final class Stage extends View {
     static final Clip BW_TOSS = new Clip("bw_windup", 220, "bw_toss", 260, "bw_hold", 160);
     static final Clip BW_DUMP = new Clip("bw_hold", 150, "bd_start", 150, "bd_lift", 170, "bd_mid", 170, "bd_heave", 480,
             "bd_back", 200, "bd_down", 450, "bw_hold", 200);
-    static final float BIN_DX = 0.42f, BIN_DY = -0.27f, BIN_W = 0.28f; // 짐칸 위 가운데(수레 캔버스 높이 비율, 발 기준)
+    static final float BIN_DX = 0.42f, BIN_DY = -0.25f, BIN_W = 0.2f; // 짐칸 위 가운데(수레 캔버스 높이 비율, 발 기준)
     enum B { NONE, HOLD, WALK, TOSS, DUMP }
     static final class Job { float sx, sy; Bitmap item; Runnable picked; boolean dump; Runnable done; }
     static final class Fly { Bitmap b; float x, y, vx, vy, rot, vr; }
@@ -181,7 +181,7 @@ final class Stage extends View {
         for (int i = 0; i < stack.size(); i++) {
             Fly f = new Fly(); f.b = stack.get(i);
             f.x = bx; f.y = by - i * charH() * 0.09f;
-            f.vx = dir * charH() * (2.2f + rnd.nextFloat() * 1.6f); f.vy = -charH() * (1.2f + rnd.nextFloat() * 1.2f);
+            f.vx = dir * charH() * (1.3f + rnd.nextFloat() * 0.9f); f.vy = -charH() * (1.2f + rnd.nextFloat() * 0.8f);
             f.vr = dir * (300 + rnd.nextInt(400));
             flies.add(f);
         }
@@ -212,7 +212,7 @@ final class Stage extends View {
                 Bitmap it = stack.get(i); if (it == null) continue;
                 float ih = iw * it.getHeight() / it.getWidth();
                 float jx = ((i * 37) % 9 - 4) * iw * 0.04f, rot = ((i * 53) % 15 - 7);
-                float base = by - i * ih * 0.32f;
+                float base = by - i * ih * 0.28f;
                 c.save(); c.rotate(rot, bx + jx, base);
                 c.drawBitmap(it, null, new RectF(bx + jx - iw / 2, base - ih, bx + jx + iw / 2, base), px);
                 c.restore();

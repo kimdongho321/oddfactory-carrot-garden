@@ -60,6 +60,11 @@ MOTIONS = [
         ("wn_fall", 1200, True)]),
     ("barrow", "잡초 여러 개 정리 (수레로 옮기기)", [
         ("master", 500, True), ("b01_barrow", 1400, True)]),
+    ("delete_fall", "삭제 → 잡초 뽑고 엉덩방아", [
+        ("master", 400, True), ("wn_lower1", 160, True), ("wn_lower2", 150, True), ("wn_grab_v2", 220, True),
+        ("wn_lower2", 140, True), ("wn_grab_v2", 220, True), ("wn_lower2", 140, True), ("wn_grab_v2", 220, True),
+        ("wn_pop", 160, True), ("fall_0", 180, True), ("fall_1", 520, True), ("fall_2", 900, True),
+        ("e05_rise", 220, True), ("master", 400, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
         ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
@@ -145,6 +150,11 @@ def main():
                 done[name] = True
             frames.append({"src": "frames/" + name + ".png?v=" + str(int(time.time())), "ms": ms, "name": name, "tf": tf})
         data.append({"id": mid, "title": title, "frames": frames})
+    try:  # 앱 자산으로 만드는 추가 모션(수레·햇님이)
+        import web_extra
+        data.extend(web_extra.build(FR, str(int(time.time()))))
+    except Exception as e:
+        print("web_extra 실패:", e)
     html = open(os.path.join(os.path.dirname(__file__), "viewer_template.html"), encoding="utf-8").read()
     html = html.replace("__DATA__", json.dumps(data, ensure_ascii=False))
     open(os.path.join(OUT, "index.html"), "w", encoding="utf-8").write(html)
