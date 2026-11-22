@@ -13,6 +13,8 @@ final class Sprites {
     final int w, h;          // 프레임 캔버스(px)
     final float footX, footY; // 캔버스 안 발 위치
     final Bitmap weed;
+    // 수레 프레임(frames/barrow.json): 캐릭터+수레라 캔버스가 더 넓다. 기준점 = 캐릭터 발
+    int bw, bh; float bFootX, bFootY;
     private final Context ctx;
     private final Map<String, Bitmap> cache = new HashMap<>();
 
@@ -22,6 +24,10 @@ final class Sprites {
         w = m.getInt("w"); h = m.getInt("h");
         footX = (float) m.getDouble("footX"); footY = (float) m.getDouble("footY");
         weed = decode("weed.png");
+        try {
+            JSONObject b = new JSONObject(read("frames/barrow.json"));
+            bw = b.getInt("w"); bh = b.getInt("h"); bFootX = (float) b.getDouble("footX"); bFootY = (float) b.getDouble("footY");
+        } catch (Exception ignored) {}
     }
 
     Bitmap frame(String name) {

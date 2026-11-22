@@ -530,6 +530,18 @@ public final class CarrotService extends AccessibilityService {
         if (c == null || c.stage == null) { grabbed.run(); return; }
         c.stage.pullAt(sx, sy, grabbed);
     }
+    static boolean barrowAdd(float sx, float sy, android.graphics.Bitmap item, Runnable picked) {
+        CarrotService c = current;
+        if (c == null || c.stage == null) return false;
+        c.stage.barrowAdd(sx, sy, item, picked); return true;
+    }
+    static void barrowRemove(android.graphics.Bitmap item) { CarrotService c = current; if (c != null && c.stage != null) c.stage.barrowRemove(item); }
+    static void barrowCancel() { CarrotService c = current; if (c != null && c.stage != null) c.stage.barrowCancel(); }
+    static void barrowDump(Runnable done) {
+        CarrotService c = current;
+        if (c == null || c.stage == null) { done.run(); return; }
+        c.stage.barrowDump(done);
+    }
     static void pullDone() { CarrotService c = current; if (c != null && c.stage != null) c.stage.extPop(); }
     static void pullCancel() { CarrotService c = current; if (c != null && c.stage != null) c.stage.extRelease(); }
 

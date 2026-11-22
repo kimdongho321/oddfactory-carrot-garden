@@ -71,6 +71,7 @@ public final class GardenActivity extends Activity {
 
     static final class App {
         String pkg, label, key, initials, crop; UserHandle user; Bitmap icon; long todayMs, lastUsed; int idleDays; boolean weed, system;
+        boolean inBarrow; Bitmap item; // 수레에 실린 동안 칸의 식물은 비어 보임, item = 수레에 쌓일 그림
     }
 
     float dp; Typeface bold, light;
@@ -83,6 +84,7 @@ public final class GardenActivity extends Activity {
     final List<App> shown = new ArrayList<>();  // 검색 결과(화면에 보이는 것)
     boolean selecting; final Set<App> picked = new LinkedHashSet<>();
     final List<App> pullQueue = new ArrayList<>(); App pulling; long pullAskedAt;
+    boolean multi; final List<App> removedMulti = new ArrayList<>(); // 여러 개 삭제 중(수레)
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -303,7 +305,8 @@ public final class GardenActivity extends Activity {
     final LauncherApps.Callback cb = new LauncherApps.Callback() {
         @Override public void onPackageRemoved(String pkg, UserHandle user) {
             App a = find(pkg); if (a == null) return;
-            if (a == pulling) { pulling = null; CarrotService.pullDone(); garden.popped(a); }
+            if (a == pulling && multi) { pulling = null; removedMulti.add(a); nextInQueue(); } // 수레에 실린 채로 확정
+            else if (a == pulling) { pulling = null; CarrotService.pullDone(); garden.popped(a); }
             else { apps.remove(a); shown.remove(a); garden.layoutCells(); }
         }
         @Override public void onPackageAdded(String pkg, UserHandle user) { load(); }
@@ -316,7 +319,10 @@ public final class GardenActivity extends Activity {
     void checkPullCancelled() {
         if (pulling == null) return;
         try { getPackageManager().getPackageInfo(pulling.pkg, 0); } catch (Exception gone) { return; }
-        pulling = null; CarrotService.pullCancel(); nextInQueue();
+        App a = pulling; pulling = null;
+        if (multi) { a.inBarrow = false; CarrotService.barrowRemove(a.item); garden.invalidate(); } // 취소한 건 수레에서 꺼내 제자리로
+        else CarrotService.pullCancel();
+        nextInQueue();
     }
 
     // ---- 누름 ----
@@ -328,12 +334,27 @@ public final class GardenActivity extends Activity {
     }
 
     void toggle(App a) {
-        if (!picked.remove(a)) picked.add(a);
+        if (!picked.remove(a)) {
+            picked.add(a);
+            // 캬롯이 수레를 밀고 그 칸으로 가서 식물을 집어 수레에 던져 넣는다
+            int i = shown.indexOf(a);
+            if (i >= 0) {
+                Bitmap src = garden.plantOf(a);
+                a.item = src == null ? null : src.copy(src.getConfig(), false);
+                float[] p = garden.rootOnScreen(i);
+                if (a.item != null) CarrotService.barrowAdd(p[0], p[1], a.item, () -> { if (picked.contains(a)) { a.inBarrow = true; garden.invalidate(); } });
+            }
+        } else { a.inBarrow = false; if (a.item != null) CarrotService.barrowRemove(a.item); }
         selText.setText(picked.size() + "개 선택");
         garden.invalidate();
     }
 
+    /** 고르기 취소: 수레를 내려놓고 식물을 제자리로. */
     void setSelecting(boolean on) {
+        if (!on) { for (App a : picked) a.inBarrow = false; CarrotService.barrowCancel(); }
+        endSelectingUi(on);
+    }
+    void endSelectingUi(boolean on) {
         selecting = on; picked.clear();
         selBar.setVisibility(on ? View.VISIBLE : View.GONE);
         selText.setText("0개 선택");
@@ -396,15 +417,31 @@ public final class GardenActivity extends Activity {
         pullQueue.clear();
         for (App a : picked) if (!a.system) pullQueue.add(a);
         int skipped = picked.size() - pullQueue.size();
-        setSelecting(false);
+        for (App a : picked) if (a.system) { a.inBarrow = false; if (a.item != null) CarrotService.barrowRemove(a.item); }
+        multi = true; removedMulti.clear();
+        endSelectingUi(false); // 수레는 그대로 두고(삭제 확인 뒤 엎는다) 선택 띠만 닫음
         if (skipped > 0) Toast.makeText(this, "기본 앱 " + skipped + "개는 뽑을 수 없어요", Toast.LENGTH_SHORT).show();
         nextInQueue();
     }
 
     /** 그 앱이 있는 페이지로 넘어가 → 캬롯이 그 칸까지 가서 붙잡으면 → 삭제 확인 창. */
     void nextInQueue() {
-        if (pullQueue.isEmpty()) return;
+        if (pullQueue.isEmpty()) {
+            if (multi) { // 확인 창을 다 거침 → 지운 게 있으면 화면 끝에서 수레를 엎고, 없으면 내려놓기
+                multi = false;
+                List<App> gone = new ArrayList<>(removedMulti); removedMulti.clear();
+                if (gone.isEmpty()) CarrotService.barrowCancel();
+                else CarrotService.barrowDump(() -> { apps.removeAll(gone); shown.removeAll(gone); garden.layoutCells(); });
+            }
+            return;
+        }
         App a = pullQueue.remove(0);
+        if (multi) { // 이미 수레에 실려 있으니 걸어가지 않고 바로 확인 창
+            pulling = a; pullAskedAt = SystemClock.uptimeMillis();
+            try { startActivity(new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + a.pkg))); }
+            catch (Exception e) { pulling = null; a.inBarrow = false; nextInQueue(); }
+            return;
+        }
         int i = shown.indexOf(a);
         Runnable ask = () -> {
             pulling = a; pullAskedAt = SystemClock.uptimeMillis();
@@ -614,7 +651,7 @@ public final class GardenActivity extends Activity {
                 Bitmap hb = hatnim[hatnimFrame(yt)];
                 float hh = r.height() * 0.92f, hw = hh * hb.getWidth() / hb.getHeight();
                 c.drawBitmap(hb, null, new RectF(pcx - hw / 2, base - hh, pcx + hw / 2, base), ap);
-            } else if (plant != null) {
+            } else if (plant != null && !a.inBarrow) {
                 float pw = ph * plant.getWidth() / plant.getHeight();
                 float sway = a.weed ? (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + a.pkg.hashCode() % 7) * 4f : 0;
                 c.save(); c.rotate(sway, pcx, base);
@@ -677,6 +714,8 @@ public final class GardenActivity extends Activity {
             box.setStyle(Paint.Style.STROKE); box.setStrokeWidth(1.5f * dp); box.setColor(0xFF3A2418); c.drawRoundRect(b, th / 2, th / 2, box); box.setStyle(Paint.Style.FILL);
             text.setColor(Color.WHITE); text.setStyle(Paint.Style.FILL); c.drawText(t, cx, cy + 3.8f * dp, text);
         }
+
+        Bitmap plantOf(App a) { return a.weed ? weedBmp : crops.get(a.crop); }
 
         long hatnimTotal() { long t = 0; for (int m : HATNIM_MS) t += m; return t; }
         int hatnimFrame(long t) {

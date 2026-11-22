@@ -82,6 +82,156 @@ final class Stage extends View {
 
     enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, ENTER, EXIT, DRAG, OFF }
 
+    // ================= 수레(여러 개 뽑기) =================
+    // 고를 때마다: 수레를 밀고 그 칸 옆으로 → 잡초를 들어 수레에 던져 넣음 → 짐칸 위로 쌓임
+    // 삭제가 끝나면: 가까운 화면 끝으로 밀고 가서 수레를 엎어 잡초를 화면 밖으로 버림
+    static final Clip BW_WALK = new Clip("bw_walk_l", 120, "bw_pass_a", 100, "bw_walk_r", 120, "bw_pass_b", 100);
+    static final Clip BW_TOSS = new Clip("bw_windup", 220, "bw_toss", 260, "bw_hold", 160);
+    static final Clip BW_DUMP = new Clip("bw_hold", 150, "bd_start", 150, "bd_lift", 170, "bd_mid", 170, "bd_heave", 480,
+            "bd_back", 200, "bd_down", 450, "bw_hold", 200);
+    static final float BIN_DX = 0.42f, BIN_DY = -0.27f, BIN_W = 0.28f; // 짐칸 위 가운데(수레 캔버스 높이 비율, 발 기준)
+    enum B { NONE, HOLD, WALK, TOSS, DUMP }
+    static final class Job { float sx, sy; Bitmap item; Runnable picked; boolean dump; Runnable done; }
+    static final class Fly { Bitmap b; float x, y, vx, vy, rot, vr; }
+    B bs = B.NONE; long bt0; final ArrayDeque<Job> jobs = new ArrayDeque<>(); Job job;
+    final List<Bitmap> stack = new ArrayList<>(); final List<Fly> flies = new ArrayList<>();
+    boolean barrowOn() { return bs != B.NONE; }
+
+    /** 고른 앱 하나: 그 칸(화면 좌표 sx, sy)으로 수레를 밀고 가서 item(그 칸의 식물 그림)을 던져 넣는다. picked: 집어 든 순간(칸에서 식물을 지움). */
+    void barrowAdd(float sx, float sy, Bitmap item, Runnable picked) {
+        if (!shownOnHome || Float.isNaN(x) || s == S.OFF || s == S.ENTER || s == S.EXIT) { stack.add(item); picked.run(); return; }
+        Job j = new Job(); j.sx = sx - loc[0]; j.sy = sy - loc[1]; j.item = item; j.picked = picked;
+        jobs.add(j);
+        if (bs == B.NONE) { bs = B.HOLD; bt0 = SystemClock.uptimeMillis(); ext = false; queue.clear(); s = S.IDLE; }
+        if (bs == B.HOLD) nextJob();
+    }
+    /** 선택을 풀었다: 아직 안 던졌으면 할 일에서 빼고, 이미 수레에 있으면 하나 꺼낸다. */
+    void barrowRemove(Bitmap item) {
+        for (Job j : jobs) if (j.item == item && !j.dump) { jobs.remove(j); return; }
+        int i = stack.lastIndexOf(item); if (i >= 0) stack.remove(i);
+    }
+    /** 고르기를 그만둠: 수레를 내려놓고 평소대로. */
+    void barrowCancel() { jobs.clear(); job = null; stack.clear(); bs = B.NONE; idle(600); }
+    /** 삭제 끝: 가까운 화면 끝으로 가서 엎는다. done: 다 버린 뒤. */
+    void barrowDump(Runnable done) {
+        if (bs == B.NONE) { stack.clear(); done.run(); return; }
+        Job j = new Job(); j.dump = true; j.done = done; jobs.add(j);
+        if (bs == B.HOLD) nextJob();
+    }
+
+    float bK() { return charH() / sp.h; }                      // 수레 프레임도 일반 프레임과 같은 배율
+    float barrowFront() { return (sp.bw - sp.bFootX) * bK(); }  // 발에서 수레 앞끝까지
+
+    void nextJob() {
+        job = jobs.poll();
+        if (job == null) { bs = B.HOLD; bt0 = SystemClock.uptimeMillis(); return; }
+        if (job.dump) { // 가까운 쪽 화면 끝: 수레 앞이 화면 끝에 닿게
+            faceRight = x > getWidth() / 2f;
+            tx = faceRight ? getWidth() - barrowFront() * 0.8f : barrowFront() * 0.8f; ty = y;
+        } else {
+            faceRight = job.sx > x;
+            tx = job.sx - (faceRight ? 1 : -1) * charH() * 0.35f; ty = job.sy;
+            tx = Math.max(charW() * 0.4f, Math.min(getWidth() - charW() * 0.4f, tx));
+        }
+        bs = B.WALK; bt0 = SystemClock.uptimeMillis();
+    }
+
+    void stepBarrow(long now, float dt) {
+        long t = now - bt0;
+        switch (bs) {
+            case WALK: {
+                float dx = tx - x, dy = ty - y, dd = (float) Math.hypot(dx, dy);
+                float spd = charH() * (dd > charH() * 2.5f ? 1.9f : 1.0f);
+                if (dd <= spd * dt) {
+                    x = tx; y = ty; bt0 = now;
+                    if (job != null && job.dump) bs = B.DUMP;
+                    else { bs = B.TOSS; if (job != null && job.picked != null) job.picked.run(); }
+                } else { x += dx / dd * spd * dt; y += dy / dd * spd * dt; }
+                break;
+            }
+            case TOSS: {
+                long tossAt = BW_TOSS.ms[0] + BW_TOSS.ms[1] / 2;
+                if (job != null && job.item != null && t >= tossAt) { stack.add(job.item); job.item = null; }
+                if (t >= BW_TOSS.total) { job = null; nextJob(); }
+                break;
+            }
+            case DUMP: {
+                long ejectAt = BW_DUMP.ms[0] + BW_DUMP.ms[1] + BW_DUMP.ms[2] + BW_DUMP.ms[3] / 2;
+                if (!stack.isEmpty() && t >= ejectAt) eject();
+                if (t >= BW_DUMP.total) {
+                    Runnable d = job != null ? job.done : null; job = null; bs = B.NONE; stack.clear();
+                    idle(500); if (d != null) d.run();
+                }
+                break;
+            }
+            default:
+        }
+        // 날아가는 잡초(포물선, 빙글빙글)
+        for (int i = flies.size() - 1; i >= 0; i--) {
+            Fly f = flies.get(i);
+            f.vy += charH() * 3.2f * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt;
+            if (f.y > getHeight() + charH() || f.x < -charH() * 2 || f.x > getWidth() + charH() * 2) flies.remove(i);
+        }
+    }
+
+    /** 짐칸의 잡초를 화면 밖으로 쏟는다. */
+    void eject() {
+        float dir = faceRight ? 1 : -1, k = bK();
+        float bx = x + dir * sp.bh * BIN_DX * k, by = y + sp.bh * BIN_DY * k;
+        for (int i = 0; i < stack.size(); i++) {
+            Fly f = new Fly(); f.b = stack.get(i);
+            f.x = bx; f.y = by - i * charH() * 0.09f;
+            f.vx = dir * charH() * (2.2f + rnd.nextFloat() * 1.6f); f.vy = -charH() * (1.2f + rnd.nextFloat() * 1.2f);
+            f.vr = dir * (300 + rnd.nextInt(400));
+            flies.add(f);
+        }
+        stack.clear();
+    }
+
+    String barrowFrame(long now) {
+        long t = now - bt0;
+        switch (bs) {
+            case WALK: return BW_WALK.at(t, true);
+            case TOSS: return BW_TOSS.at(t, false);
+            case DUMP: return BW_DUMP.at(t, false);
+            default: return "bw_hold";
+        }
+    }
+
+    void drawBarrow(Canvas c, long now) {
+        float k = bK(), w = sp.bw * k, h = sp.bh * k;
+        float left = x - sp.bFootX * k, top = y - sp.bFootY * k;
+        c.save();
+        if (!faceRight) c.scale(-1, 1, x, y); // 그림은 오른쪽으로 밀고 있다
+        Bitmap b = sp.frame(barrowFrame(now));
+        if (b != null) c.drawBitmap(b, null, new RectF(left, top, left + w, top + h), px);
+        // 짐칸 위로 쌓인 잡초(엎는 중에는 이미 쏟아져 나감)
+        if (bs != B.DUMP || t0Before(now)) {
+            float bx = x + sp.bh * BIN_DX * k, by = y + sp.bh * BIN_DY * k, iw = sp.bh * BIN_W * k;
+            for (int i = 0; i < stack.size(); i++) {
+                Bitmap it = stack.get(i); if (it == null) continue;
+                float ih = iw * it.getHeight() / it.getWidth();
+                float jx = ((i * 37) % 9 - 4) * iw * 0.04f, rot = ((i * 53) % 15 - 7);
+                float base = by - i * ih * 0.32f;
+                c.save(); c.rotate(rot, bx + jx, base);
+                c.drawBitmap(it, null, new RectF(bx + jx - iw / 2, base - ih, bx + jx + iw / 2, base), px);
+                c.restore();
+            }
+        }
+        c.restore();
+    }
+    boolean t0Before(long now) { return true; }
+
+    void drawFlies(Canvas c) {
+        float iw = sp.bh * BIN_W * bK();
+        for (Fly f : flies) {
+            float ih = iw * f.b.getHeight() / f.b.getWidth();
+            c.save(); c.rotate(f.rot, f.x, f.y);
+            c.drawBitmap(f.b, null, new RectF(f.x - iw / 2, f.y - ih / 2, f.x + iw / 2, f.y + ih / 2), px);
+            c.restore();
+        }
+    }
+
     interface Listener { void bodyAt(RectF r); }
     Listener listener;
     final RectF body = new RectF();
@@ -438,7 +588,7 @@ final class Stage extends View {
             if (!running) return;
             long now = SystemClock.uptimeMillis();
             float dt = Math.min(0.1f, (now - last) / 1000f); last = now;
-            if (!Float.isNaN(x)) step(now, dt);
+            if (!Float.isNaN(x)) { if (barrowOn() || !flies.isEmpty()) stepBarrow(now, dt); if (!barrowOn()) step(now, dt); }
             reportBody();
             invalidate();
             postOnAnimation(this);
@@ -453,7 +603,7 @@ final class Stage extends View {
     }
 
     // ---- 터치(서비스의 터치 창에서) ----
-    boolean busy() { return s == S.ENTER || s == S.EXIT || s == S.OFF || s == S.GRAB || s == S.TUG || s == S.POP || s == S.BARROW_OUT; }
+    boolean busy() { return barrowOn() || s == S.ENTER || s == S.EXIT || s == S.OFF || s == S.GRAB || s == S.TUG || s == S.POP || s == S.BARROW_OUT; }
     void tap() { if (!busy() && s != S.DRAG) play(S.ACT, HARVEST); }
     void invite() { if (!busy() && s != S.DRAG) play(S.ACT, INVITE); }
     boolean startDrag(float rawX, float rawY) {
@@ -498,6 +648,8 @@ final class Stage extends View {
                 c.restore();
             }
         }
+        if (!flies.isEmpty()) drawFlies(c);
+        if (barrowOn() && sp.bw > 0) { drawBarrow(c, SystemClock.uptimeMillis()); return; }
         Bitmap b = sp.frame(frameNow(SystemClock.uptimeMillis()));
         if (b == null) return;
         float h = charH(), k = h / sp.h, w = sp.w * k;
