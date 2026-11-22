@@ -26,6 +26,7 @@ FRAMES = [
     "pull_right_mid", "pull_right_mid2", "pull_right_peak", "pull_right_struggle_a", "pull_right_struggle_b",
     "h01_notice", "m05_harvest", "m05b_harvest_v2", "h03_popout", "k05_harvest",
     "m06_invite", "m06b_invite", "k06_invite",
+    "fall_0", "fall_1", "fall_2",
 ]
 
 

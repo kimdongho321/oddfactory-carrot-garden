@@ -52,6 +52,8 @@ final class Stage extends View {
             "i01_water", 300, "i01b_water", 300, "i01a_water", 260, "master", 300);
     static final Clip GRAB = new Clip("wn_lower1", 160, "wn_lower2", 150, "wn_grab_v2", 220);
     static final Clip TUG = new Clip("wn_grab_v2", 220, "wn_lower2", 140);
+    // 텃밭에서 뽑기 성공: 쑥 뽑음 → 뒤로 넘어가며 물러남 → 엉덩방아 → 주저앉아 웃음 → 일어남
+    static final Clip FALL = new Clip("wn_pop", 160, "fall_0", 180, "fall_1", 520, "fall_2", 900, "e05_rise", 220, "master", 200);
     static final Clip POP = new Clip("wn_pop", 700, "wn_lower2", 140, "wn_lower1", 160, "master", 200);
 
     // 시작: 새싹 → 머리 뿅 → 혀 낼름 → 손 짚고 → 일어남 / 종료: 반대로 쏙 들어감
@@ -303,7 +305,7 @@ final class Stage extends View {
     float recoilFrom, recoilTo; long recoilT0 = -1;
     void extPop() {
         if (!ext) return;
-        ext = false; extGrab = null; play(S.POP, POP);
+        ext = false; extGrab = null; play(S.POP, FALL);
         recoilFrom = x; recoilTo = Math.max(charW() * 0.3f, x - charH() * 0.62f);
         if (recoilFrom - recoilTo < charH() * 0.3f) recoilTo = Math.min(getWidth() - charW() * 0.3f, x + charH() * 0.62f); // 왼쪽이 막혔으면 오른쪽으로
         recoilT0 = SystemClock.uptimeMillis();
@@ -383,12 +385,12 @@ final class Stage extends View {
                 }
                 break;
             case POP:
-                if (recoilT0 > 0) { // 뒤로 미끄러지듯 물러남(처음 빠르고 끝에 느리게)
-                    float k = Math.min(1f, (now - recoilT0) / 320f); k = 1 - (1 - k) * (1 - k);
+                if (recoilT0 > 0) { // 뒤로 넘어가며 물러남(처음 빠르고 끝에 느리게)
+                    float k = Math.min(1f, Math.max(0f, (now - recoilT0 - 120) / 380f)); k = 1 - (1 - k) * (1 - k);
                     x = recoilFrom + (recoilTo - recoilFrom) * k;
                     if (k >= 1f) recoilT0 = -1;
                 }
-                if (t >= POP.total) {
+                if (t >= (act == FALL ? FALL.total : POP.total)) {
                     if (goal == Goal.DELETE_ONE) goal = Goal.WANDER;
                     idle(goal == Goal.LOAD ? 200 : 1800);
                 }
@@ -415,7 +417,7 @@ final class Stage extends View {
             case ACT: return act.at(t, false);
             case GRAB: return GRAB.at(t, false);
             case TUG: return TUG.at(t, true);
-            case POP: return POP.at(t, false);
+            case POP: return act == FALL ? FALL.at(t, false) : POP.at(t, false);
             case BARROW_OUT: return "b01_barrow";
             case ENTER: return ENTER.at(t, false);
             case DRAG: return t < PULL_IN.total ? PULL_IN.at(t, false) : PULL_LOOP.at(t - PULL_IN.total, true);

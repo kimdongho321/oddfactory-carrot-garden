@@ -70,7 +70,7 @@ public final class GardenActivity extends Activity {
     static final int[] HATNIM_MS = {160, 170, 170, 230, 180, 900};
 
     static final class App {
-        String pkg, label, key, initials; UserHandle user; Bitmap icon; long todayMs, lastUsed; boolean weed, system;
+        String pkg, label, key, initials, crop; UserHandle user; Bitmap icon; long todayMs, lastUsed; int idleDays; boolean weed, system;
     }
 
     float dp; Typeface bold, light;
@@ -212,6 +212,8 @@ public final class GardenActivity extends Activity {
                 x.lastUsed = last.containsKey(pkg) ? last.get(pkg) : 0;
                 long installed = 0; try { PackageInfo pi = pm.getPackageInfo(pkg, 0); installed = pi.firstInstallTime; } catch (Exception ignored) {}
                 x.weed = usage && !x.system && now - installed > 30 * DAY && now - x.lastUsed > 30 * DAY;
+                x.idleDays = (int) ((now - Math.max(x.lastUsed, installed)) / DAY);
+                x.crop = cropOf(pkg);
                 try { x.icon = toBitmap(a.getBadgedIcon(0), iconPx); } catch (Exception ignored) {}
                 list.add(x);
             }
@@ -234,6 +236,13 @@ public final class GardenActivity extends Activity {
                 : q.isEmpty() ? "당근 " + (apps.size() - weeds) + " · 잡초 " + weeds : "찾은 앱 " + shown.size());
         garden.page = 0; garden.pageX = 0;
         garden.layoutCells();
+    }
+
+    // 작물 섞기: 당근이 절반 남짓(55%), 나머지 여섯 가지가 고르게. 같은 앱은 늘 같은 작물.
+    static final String[] OTHERS = {"pumpkin", "corn", "tomato", "cabbage", "potato", "radish"};
+    static String cropOf(String pkg) {
+        int h = (pkg.hashCode() & 0x7fffffff) % 100;
+        return h < 55 ? "carrot" : OTHERS[(h - 55) * OTHERS.length / 45];
     }
 
     static final char[] CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ".toCharArray();
@@ -413,7 +422,9 @@ public final class GardenActivity extends Activity {
     /** 텃밭 그림: 풀밭 바탕, 줄마다 이랑, 칸마다 당근/잡초 + 팻말(진짜 아이콘) + 이름. */
     final class GardenView extends View {
         final Paint px = new Paint(), text = new Paint(Paint.ANTI_ALIAS_FLAG), box = new Paint(Paint.ANTI_ALIAS_FLAG);
-        Bitmap sky, skyWide, grass, bed, sign, weedBmp, carrot; Paint grassPaint;
+        Bitmap sky, skyWide, grass, bed, sign, weedBmp; Paint grassPaint;
+        final Map<String, Bitmap> crops = new HashMap<>();
+        final Paint gray = new Paint();
         final Bitmap[] hatnim = new Bitmap[6];
         final float[] panel = {0.24f, 0.25f, 0.76f, 0.61f};
         final Map<App, Long> yanking = new HashMap<>();
@@ -433,7 +444,8 @@ public final class GardenActivity extends Activity {
             grass = asset("garden/grass.jpg");
             bed = asset("garden/bed.png");
             sign = asset("garden/sign_b.png");
-            carrot = asset("garden/carrot_2.png"); // 당근은 한 가지 그림으로 통일
+            for (String cr : new String[]{"carrot", "pumpkin", "corn", "tomato", "cabbage", "potato", "radish"}) crops.put(cr, asset("garden/" + cr + "_2.png"));
+            gray.setColorFilter(new android.graphics.ColorMatrixColorFilter(new android.graphics.ColorMatrix() {{ setSaturation(0f); }}));
             for (int i = 0; i < hatnim.length; i++) hatnim[i] = asset("garden/hatnim_" + i + ".png");
             try (InputStream in = getAssets().open("garden/signs.json")) {
                 org.json.JSONArray pnl = new org.json.JSONObject(new String(in.readAllBytes(), "UTF-8")).getJSONObject("b").getJSONArray("panel");
@@ -594,7 +606,7 @@ public final class GardenActivity extends Activity {
             if (ys != null && yt > hatnimTotal()) alpha = (int) Math.max(0, 255 * (1 - (yt - hatnimTotal()) / 350f)); // 끝나면 칸이 흐려지며 사라짐
             Paint ap = new Paint(px); ap.setAlpha(alpha);
             // 식물: 뽑히는 중이면 햇님이가 튀어나오는 프레임
-            Bitmap plant = a.weed ? weedBmp : carrot;
+            Bitmap plant = a.weed ? weedBmp : crops.get(a.crop);
             float ph = r.height() * (a.weed ? 0.58f : 0.7f);
             if (ys != null && hatnim[0] != null) {
                 Bitmap hb = hatnim[hatnimFrame(yt)];
@@ -608,15 +620,22 @@ public final class GardenActivity extends Activity {
                 c.restore();
             }
             // 팻말: 작게, 식물 오른쪽 앞에 꽂힘(뽑히면 옆으로 쓰러지며 흐려짐)
-            float sh = r.height() * 0.34f, sw = sign != null ? sh * sign.getWidth() / sign.getHeight() : sh * 0.8f;
-            float sx = r.right - sw - r.width() * 0.01f, sy = base + r.height() * 0.06f - sh;
+            float sh = r.height() * 0.52f, sw = sign != null ? sh * sign.getWidth() / sign.getHeight() : sh * 0.8f;
+            sw = Math.min(sw, r.width() * 0.62f); sh = sign != null ? sw * sign.getHeight() / sign.getWidth() : sh;
+            float sx = r.right - sw - r.width() * 0.02f, sy = base + r.height() * 0.1f - sh; // 크게, 식물 앞을 가려도 됨
             c.save();
             if (ys != null) { float k = Math.min(1f, yt / 500f); c.rotate(70 * k * k, sx + sw * 0.5f, sy + sh); ap.setAlpha((int) (alpha * (1 - 0.6f * k))); }
             if (sign != null) c.drawBitmap(sign, null, new RectF(sx, sy, sx + sw, sy + sh), ap);
             RectF pr = new RectF(sx + sw * panel[0], sy + sh * panel[1], sx + sw * panel[2], sy + sh * panel[3]);
             float is = Math.min(pr.width(), pr.height()) * 0.9f;
-            if (a.icon != null) c.drawBitmap(a.icon, null, new RectF(pr.centerX() - is / 2, pr.centerY() - is / 2, pr.centerX() + is / 2, pr.centerY() + is / 2), ap);
+            RectF ir = new RectF(pr.centerX() - is / 2, pr.centerY() - is / 2, pr.centerX() + is / 2, pr.centerY() + is / 2);
+            if (a.icon != null) {
+                if (a.weed) { gray.setAlpha((int) (alpha * 0.75f)); c.drawBitmap(a.icon, null, ir, gray); } // 오래 안 써서 바랜 아이콘
+                else c.drawBitmap(a.icon, null, ir, ap);
+            }
+            if (a.weed && ys == null) cobweb(c, pr);
             c.restore();
+            if (a.weed && ys == null) idleBadge(c, sx + sw * 0.86f, sy + sh * 0.12f, a.idleDays);
             if (ys != null) return;
             // 앱 이름(풀밭 위, 흰 테두리 글씨)
             text.setTextSize(11.5f * getResources().getDisplayMetrics().scaledDensity);
@@ -634,6 +653,29 @@ public final class GardenActivity extends Activity {
             }
         }
 
+        /** 팻말 아이콘 칸 모서리에 거미줄(오래 방치됨). */
+        void cobweb(Canvas c, RectF pr) {
+            Paint w = new Paint(Paint.ANTI_ALIAS_FLAG); w.setStyle(Paint.Style.STROKE); w.setStrokeWidth(1.2f * dp); w.setColor(0xCCFFFFFF);
+            float ox = pr.left, oy = pr.top, L = pr.width() * 0.55f;
+            for (int i = 0; i <= 3; i++) { double a = Math.PI / 2 * i / 3; c.drawLine(ox, oy, ox + (float) Math.cos(a) * L, oy + (float) Math.sin(a) * L, w); }
+            for (int k = 1; k <= 3; k++) {
+                float rr = L * k / 3.4f; android.graphics.Path p = new android.graphics.Path();
+                for (int i = 0; i <= 3; i++) { double a = Math.PI / 2 * i / 3; float x = ox + (float) Math.cos(a) * rr, y = oy + (float) Math.sin(a) * rr; if (i == 0) p.moveTo(x, y); else p.quadTo(ox + (float) Math.cos(a - 0.26) * rr * 0.8f, oy + (float) Math.sin(a - 0.26) * rr * 0.8f, x, y); }
+                c.drawPath(p, w);
+            }
+        }
+
+        /** 안 쓴 날수 배지(예: 45일). */
+        void idleBadge(Canvas c, float cx, float cy, int days) {
+            String t = days >= 365 ? "1년+" : days + "일";
+            text.setTextSize(10.5f * getResources().getDisplayMetrics().scaledDensity);
+            float tw = text.measureText(t) + 10 * dp, th = 17 * dp;
+            RectF b = new RectF(cx - tw / 2, cy - th / 2, cx + tw / 2, cy + th / 2);
+            box.setStyle(Paint.Style.FILL); box.setColor(0xFF7C8A92); c.drawRoundRect(b, th / 2, th / 2, box);
+            box.setStyle(Paint.Style.STROKE); box.setStrokeWidth(1.5f * dp); box.setColor(0xFF3A2418); c.drawRoundRect(b, th / 2, th / 2, box); box.setStyle(Paint.Style.FILL);
+            text.setColor(Color.WHITE); text.setStyle(Paint.Style.FILL); c.drawText(t, cx, cy + 3.8f * dp, text);
+        }
+
         long hatnimTotal() { long t = 0; for (int m : HATNIM_MS) t += m; return t; }
         int hatnimFrame(long t) {
             for (int i = 0; i < HATNIM_MS.length; i++) { if (t < HATNIM_MS[i]) return i; t -= HATNIM_MS[i]; }
@@ -648,8 +690,8 @@ public final class GardenActivity extends Activity {
         /** 지워졌다: 햇님이가 쑥 튀어나와 알통 자랑 → 칸이 흐려지며 사라지고 뒤 칸이 당겨짐. */
         void popped(App a) {
             // 캬롯이 뽑고 물러나는 동안(약 0.25초) 잎이 흔들리다가, 비켜난 자리에서 햇님이가 튀어나온다
-            yanking.put(a, SystemClock.uptimeMillis() + 250);
-            h.postDelayed(() -> { yanking.remove(a); apps.remove(a); shown.remove(a); layoutCells(); nextInQueue(); }, 250 + hatnimTotal() + 380);
+            yanking.put(a, SystemClock.uptimeMillis() + 450);
+            h.postDelayed(() -> { yanking.remove(a); apps.remove(a); shown.remove(a); layoutCells(); nextInQueue(); }, 450 + hatnimTotal() + 380);
         }
 
         // 잡초 흔들림·햇님이 연출용 매 프레임 다시 그리기
