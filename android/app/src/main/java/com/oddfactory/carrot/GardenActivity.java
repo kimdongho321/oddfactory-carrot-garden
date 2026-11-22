@@ -75,7 +75,7 @@ public final class GardenActivity extends Activity {
 
     float dp; Typeface bold, light;
     GardenView garden; FrameLayout root;
-    EditText search; TextView status; LinearLayout selBar, pageRow; TextView selText; HorizontalScrollView pageScroll;
+    EditText search; TextView status, pageLabel; LinearLayout selBar, pageRow; TextView selText;
     View menu;
     final Handler h = new Handler(Looper.getMainLooper());
     LauncherApps la;
@@ -127,13 +127,19 @@ public final class GardenActivity extends Activity {
         FrameLayout.LayoutParams sl = new FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM); sl.setMargins(p, 0, p, (int) (54 * dp));
         root.addView(selBar, sl);
 
-        // 맨 아래: 페이지 번호 1 2 3 …
-        pageScroll = new HorizontalScrollView(this); pageScroll.setHorizontalScrollBarEnabled(false);
+        // 맨 아래: ◀  3 / 20  ▶  (가운데를 누르면 번호판에서 바로 이동)
         pageRow = new LinearLayout(this); pageRow.setOrientation(LinearLayout.HORIZONTAL); pageRow.setGravity(Gravity.CENTER);
-        pageScroll.addView(pageRow);
+        pageRow.addView(roundBtn("◀", v -> garden.goPage(garden.page - 1, null)));
+        pageLabel = new TextView(this); pageLabel.setTypeface(bold); pageLabel.setTextSize(16); pageLabel.setTextColor(0xFF3A2418); pageLabel.setGravity(Gravity.CENTER);
+        GradientDrawable lg = new GradientDrawable(); lg.setColor(0xF2FFF8EA); lg.setCornerRadius(20 * dp); lg.setStroke((int) (2 * dp), 0xFF3A2418);
+        pageLabel.setBackground(lg); pageLabel.setPadding((int) (18 * dp), 0, (int) (18 * dp), 0);
+        pageLabel.setOnClickListener(v -> showPagePicker());
+        LinearLayout.LayoutParams ll = new LinearLayout.LayoutParams(-2, (int) (40 * dp)); ll.setMargins((int) (10 * dp), 0, (int) (10 * dp), 0);
+        pageRow.addView(pageLabel, ll);
+        pageRow.addView(roundBtn("▶", v -> garden.goPage(garden.page + 1, null)));
         FrameLayout.LayoutParams pl = new FrameLayout.LayoutParams(-2, (int) (44 * dp), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        pl.bottomMargin = (int) (6 * dp);
-        root.addView(pageScroll, pl);
+        pl.bottomMargin = (int) (8 * dp);
+        root.addView(pageRow, pl);
 
         setContentView(root);
         la.registerCallback(cb, h);
@@ -233,29 +239,39 @@ public final class GardenActivity extends Activity {
         Canvas c = new Canvas(b); d.setBounds(0, 0, px, px); d.draw(c); return b;
     }
 
-    // ---- 페이지 번호 ----
-    void buildPageButtons() {
-        pageRow.removeAllViews();
-        for (int i = 0; i < garden.pages; i++) {
-            final int pg = i;
-            TextView t = new TextView(this); t.setText(String.valueOf(i + 1)); t.setTypeface(bold); t.setTextSize(15); t.setGravity(Gravity.CENTER);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (36 * dp), (int) (36 * dp)); lp.setMargins((int) (3 * dp), 0, (int) (3 * dp), 0);
-            t.setOnClickListener(v -> garden.goPage(pg, null));
-            pageRow.addView(t, lp);
-        }
-        markPage();
+    // ---- 페이지 표시 ----
+    TextView roundBtn(String t, View.OnClickListener c) {
+        TextView v = new TextView(this); v.setText(t); v.setTextSize(15); v.setTextColor(0xFF3A2418); v.setGravity(Gravity.CENTER);
+        GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL); g.setColor(0xF2FFF8EA); g.setStroke((int) (2 * dp), 0xFF3A2418);
+        v.setBackground(g); v.setOnClickListener(c);
+        v.setLayoutParams(new LinearLayout.LayoutParams((int) (40 * dp), (int) (40 * dp)));
+        return v;
     }
+    void buildPageButtons() { markPage(); }
     void markPage() {
-        for (int i = 0; i < pageRow.getChildCount(); i++) {
-            TextView t = (TextView) pageRow.getChildAt(i); boolean on = i == garden.page;
-            GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL);
-            g.setColor(on ? 0xFFE7A13C : 0xE6FFF8EA); g.setStroke((int) (2 * dp), 0xFF3A2418);
-            t.setBackground(g); t.setTextColor(on ? 0xFFFFFFFF : 0xFF3A2418);
+        if (pageLabel != null) pageLabel.setText((garden.page + 1) + " / " + garden.pages);
+        pageRow.setVisibility(garden.pages > 1 ? View.VISIBLE : View.GONE);
+    }
+    /** 가운데 숫자를 누르면: 번호판(5칸씩)에서 바로 그 쪽으로. */
+    void showPagePicker() {
+        hideMenu();
+        android.widget.GridLayout grid = new android.widget.GridLayout(this); grid.setColumnCount(5);
+        int p = (int) (12 * dp); grid.setPadding(p, p, p, p);
+        GradientDrawable g = new GradientDrawable(); g.setColor(0xFAFFF8EA); g.setCornerRadius(22 * dp); g.setStroke((int) (2.5f * dp), 0xFF3A2418);
+        grid.setBackground(g); grid.setElevation(8 * dp);
+        for (int i = 0; i < garden.pages; i++) {
+            final int pg = i; boolean on = i == garden.page;
+            TextView t = new TextView(this); t.setText(String.valueOf(i + 1)); t.setTypeface(bold); t.setTextSize(15); t.setGravity(Gravity.CENTER);
+            GradientDrawable o = new GradientDrawable(); o.setShape(GradientDrawable.OVAL); o.setColor(on ? 0xFFE7A13C : 0x00000000); t.setBackground(o);
+            t.setTextColor(on ? 0xFFFFFFFF : 0xFF3A2418);
+            android.widget.GridLayout.LayoutParams lp = new android.widget.GridLayout.LayoutParams(); lp.width = (int) (44 * dp); lp.height = (int) (44 * dp);
+            t.setOnClickListener(v -> { hideMenu(); garden.goPage(pg, null); });
+            grid.addView(t, lp);
         }
-        if (garden.page < pageRow.getChildCount()) {
-            View v = pageRow.getChildAt(garden.page);
-            pageScroll.post(() -> pageScroll.smoothScrollTo(Math.max(0, v.getLeft() - pageScroll.getWidth() / 2 + v.getWidth() / 2), 0));
-        }
+        android.widget.ScrollView sv = new android.widget.ScrollView(this); sv.addView(grid);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        lp.bottomMargin = (int) (58 * dp);
+        menu = sv; root.addView(sv, lp);
     }
 
     // ---- 앱 지움 알림 ----
@@ -504,7 +520,7 @@ public final class GardenActivity extends Activity {
             float W = getWidth() > 0 ? getWidth() : getResources().getDisplayMetrics().widthPixels;
             float H = getHeight() > 0 ? getHeight() : getResources().getDisplayMetrics().heightPixels;
             cols = W / dp > 600 ? 5 : 4;
-            cellW = W / cols; cellH = cellW * 1.32f;
+            cellW = W / cols; cellH = cellW * 1.18f;
             float topUi = 100 * dp, bottomUi = 58 * dp;
             float avail = H - topUi - bottomUi;
             rows = Math.max(1, (int) (avail / cellH));
