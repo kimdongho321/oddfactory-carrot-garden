@@ -226,7 +226,8 @@ final class Stage extends View {
     void setScale(float k) { scale = k; invalidate(); }
 
     // ---- 크기 ----
-    float charH() { float base = cellH > 0 ? cellH * 1.1f : 150 * dp; return Math.max(90 * dp, Math.min(260 * dp, base)) * scale; }
+    /** 캐릭터 키: 화면(홈·다른 앱)과 관계없이 항상 같은 크기. 설정의 크기 배율만 반영. */
+    float charH() { return 120 * dp * scale; }
     float charW() { return charH() * sp.w / sp.h; }
 
     // ---- 상태 진행 ----
