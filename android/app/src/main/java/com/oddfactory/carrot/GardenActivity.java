@@ -588,7 +588,7 @@ public final class GardenActivity extends Activity {
 
         void drawCell(Canvas c, RectF r, App a) {
             Long ys = yanking.get(a);
-            long yt = ys == null ? -1 : SystemClock.uptimeMillis() - ys;
+            long yt = ys == null ? -1 : Math.max(0, SystemClock.uptimeMillis() - ys);
             float base = r.top + r.height() * 0.76f, pcx = r.centerX(); // 식물은 칸 가운데, 크게
             int alpha = 255;
             if (ys != null && yt > hatnimTotal()) alpha = (int) Math.max(0, 255 * (1 - (yt - hatnimTotal()) / 350f)); // 끝나면 칸이 흐려지며 사라짐
@@ -647,8 +647,9 @@ public final class GardenActivity extends Activity {
 
         /** 지워졌다: 햇님이가 쑥 튀어나와 알통 자랑 → 칸이 흐려지며 사라지고 뒤 칸이 당겨짐. */
         void popped(App a) {
-            yanking.put(a, SystemClock.uptimeMillis());
-            h.postDelayed(() -> { yanking.remove(a); apps.remove(a); shown.remove(a); layoutCells(); nextInQueue(); }, hatnimTotal() + 380);
+            // 캬롯이 뽑고 물러나는 동안(약 0.25초) 잎이 흔들리다가, 비켜난 자리에서 햇님이가 튀어나온다
+            yanking.put(a, SystemClock.uptimeMillis() + 250);
+            h.postDelayed(() -> { yanking.remove(a); apps.remove(a); shown.remove(a); layoutCells(); nextInQueue(); }, 250 + hatnimTotal() + 380);
         }
 
         // 잡초 흔들림·햇님이 연출용 매 프레임 다시 그리기

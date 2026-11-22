@@ -299,7 +299,15 @@ final class Stage extends View {
         ty = sy - loc[1];
         faceRight = tx > x; play(S.WALK, WALK);
     }
-    void extPop() { if (ext) { ext = false; extGrab = null; play(S.POP, POP); } }
+    /** 지워졌다: 쑥 뽑으며 반동으로 뒤로 물러나 그 칸을 비워 준다(텃밭의 햇님이가 가려지지 않게). */
+    float recoilFrom, recoilTo; long recoilT0 = -1;
+    void extPop() {
+        if (!ext) return;
+        ext = false; extGrab = null; play(S.POP, POP);
+        recoilFrom = x; recoilTo = Math.max(charW() * 0.3f, x - charH() * 0.62f);
+        if (recoilFrom - recoilTo < charH() * 0.3f) recoilTo = Math.min(getWidth() - charW() * 0.3f, x + charH() * 0.62f); // 왼쪽이 막혔으면 오른쪽으로
+        recoilT0 = SystemClock.uptimeMillis();
+    }
     void extRelease() { if (ext) { ext = false; extGrab = null; idle(800); } }
 
     /** 다음 할 일: 대기열(잡초) 우선, 없으면 아무 아이콘 앞으로 산책. */
@@ -375,6 +383,11 @@ final class Stage extends View {
                 }
                 break;
             case POP:
+                if (recoilT0 > 0) { // 뒤로 미끄러지듯 물러남(처음 빠르고 끝에 느리게)
+                    float k = Math.min(1f, (now - recoilT0) / 320f); k = 1 - (1 - k) * (1 - k);
+                    x = recoilFrom + (recoilTo - recoilFrom) * k;
+                    if (k >= 1f) recoilT0 = -1;
+                }
                 if (t >= POP.total) {
                     if (goal == Goal.DELETE_ONE) goal = Goal.WANDER;
                     idle(goal == Goal.LOAD ? 200 : 1800);
