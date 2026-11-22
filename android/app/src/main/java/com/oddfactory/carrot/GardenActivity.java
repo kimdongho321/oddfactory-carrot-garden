@@ -607,7 +607,7 @@ public final class GardenActivity extends Activity {
             Paint ap = new Paint(px); ap.setAlpha(alpha);
             // 식물: 뽑히는 중이면 햇님이가 튀어나오는 프레임
             Bitmap plant = a.weed ? weedBmp : crops.get(a.crop);
-            float ph = r.height() * (a.weed ? 0.58f : 0.7f);
+            float ph = r.height() * (a.weed ? 0.34f : 0.7f); // 잡초는 작은 새싹 덤불
             if (ys != null && hatnim[0] != null) {
                 Bitmap hb = hatnim[hatnimFrame(yt)];
                 float hh = r.height() * 0.92f, hw = hh * hb.getWidth() / hb.getHeight();
