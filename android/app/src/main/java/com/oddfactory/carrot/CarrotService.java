@@ -325,7 +325,7 @@ public final class CarrotService extends AccessibilityService {
             String activePkg = active != null && active.getPackageName() != null ? active.getPackageName().toString() : "";
             home = activePkg.equals(launcher);
             boolean installer = activePkg.contains("packageinstaller") && stage.shownOnHome; // 삭제 확인 창 동안은 계속 보인다
-            boolean ours = activePkg.equals(getPackageName());
+            boolean ours = activePkg.equals(getPackageName()) && !GardenActivity.open; // 텃밭 화면 안에는 캬롯이 따로 있다
             boolean other = everywhere(prefs) && !activePkg.isEmpty() && !activePkg.equals("com.android.systemui");
             visible = home || installer || ours || other;
             if (home || installer) {
@@ -482,8 +482,9 @@ public final class CarrotService extends AccessibilityService {
         GradientDrawable bg = new GradientDrawable(); bg.setColor(0xFFFFFBF2); bg.setCornerRadius(16 * dp); bg.setStroke(Math.round(3 * dp), 0xFF3A2418);
         box.setBackground(bg);
         Typeface tf = null; try { tf = getResources().getFont(R.font.maple_bold); } catch (Exception ignored) {}
-        String[] labels = {"설정 열기", "캬롯 종료", "닫기"};
+        String[] labels = {"텃밭 열기", "설정 열기", "캬롯 종료", "닫기"};
         Runnable[] acts = {
+                () -> { hideMenu(); Intent i = new Intent(this, GardenActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); },
                 () -> { hideMenu(); Intent i = new Intent(this, MainActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); },
                 () -> { hideMenu(); dismiss(null); },
                 this::hideMenu};

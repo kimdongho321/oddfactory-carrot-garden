@@ -445,7 +445,7 @@ final class Stage extends View {
             boolean holding = s == S.GRAB || s == S.TUG || s == S.POP;
             for (Map.Entry<String, RectF> e : icons.entrySet()) {
                 String k = e.getKey();
-                boolean weedy = (stale.contains(k) || queue.contains(k) || k.equals(waitingRemoval)) && !pulled.contains(k);
+                boolean weedy = (queue.contains(k) || k.equals(waitingRemoval)) && !pulled.contains(k); // 오래 안 쓴 앱 잡초는 텃밭 화면에서
                 if (!weedy || (holding && k.equals(target))) continue;
                 // 아이콘 그림 뒤에서 돋아나 살랑살랑(아이콘 그림 자리는 잘라 내고 그려서 뒤에 있는 것처럼)
                 RectF r = new RectF(e.getValue()); r.offset(slideOffset(), 0);

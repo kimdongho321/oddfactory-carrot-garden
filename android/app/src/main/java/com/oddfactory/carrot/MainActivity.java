@@ -49,6 +49,8 @@ public final class MainActivity extends Activity {
         }
         LinearLayout.LayoutParams big = new LinearLayout.LayoutParams(-1, -2); big.topMargin = (int) (20 * dp);
         l.addView(row, big);
+        Button gardenBtn = button("🥕 텃밭 열기 (모든 앱이 작물로)", 0xFFB9853F, v -> startActivity(new Intent(this, GardenActivity.class)));
+        gardenBtn.setTextSize(18); l.addView(gardenBtn);
 
         status = text("", 14, false); status.setPadding(0, (int) (14 * dp), 0, (int) (6 * dp)); l.addView(status);
         l.addView(button("① 접근성에서 '캬롯 앱 텃밭' 켜기", 0xFFE7A13C, v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
