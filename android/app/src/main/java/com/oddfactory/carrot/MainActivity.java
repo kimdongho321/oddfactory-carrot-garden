@@ -63,6 +63,7 @@ public final class MainActivity extends Activity {
             CarrotService.applySettings(); refresh();
         });
         l.addView(everyBtn);
+        l.addView(button("텃밭 배경화면으로 바꾸기(앱스 화면도 텃밭)", 0xFF8BB86A, v -> askWallpaper()));
 
         final int MIN = 60, MAX = 160;
         int cur = Math.max(MIN, Math.min(MAX, prefs.getInt("size", 100)));
@@ -104,6 +105,26 @@ public final class MainActivity extends Activity {
     void openUsageAccess() {
         Intent i = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS, Uri.parse("package:" + getPackageName()));
         try { startActivity(i); } catch (Exception e) { startActivity(new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)); }
+    }
+
+    /** 홈 화면 배경을 텃밭 그림으로. 앱스(앱 서랍) 화면은 이 배경을 비춰 보여 준다. 확인 창에서 고를 때만 바꾼다. */
+    void askWallpaper() {
+        new android.app.AlertDialog.Builder(this)
+                .setTitle("텃밭 배경화면")
+                .setMessage("홈 화면 배경을 캬롯 텃밭 그림으로 바꿀까요?
+앱스 화면에서도 텃밭이 비쳐 보여요.
+(지금 배경 사진은 갤러리에서 다시 고를 수 있어요)")
+                .setPositiveButton("바꾸기", (d, w) -> new Thread(() -> {
+                    boolean ok;
+                    try (java.io.InputStream in = getAssets().open("garden_wallpaper.jpg")) {
+                        android.app.WallpaperManager.getInstance(this).setStream(in, null, true, android.app.WallpaperManager.FLAG_SYSTEM);
+                        ok = true;
+                    } catch (Exception e) { ok = false; }
+                    boolean done = ok;
+                    runOnUiThread(() -> Toast.makeText(this, done ? "텃밭 배경화면으로 바꿨어요" : "배경화면을 바꾸지 못했어요", Toast.LENGTH_SHORT).show());
+                }).start())
+                .setNegativeButton("그대로 두기", null)
+                .show();
     }
 
     void start() {

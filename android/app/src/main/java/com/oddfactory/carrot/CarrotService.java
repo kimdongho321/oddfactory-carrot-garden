@@ -197,6 +197,16 @@ public final class CarrotService extends AccessibilityService {
         }
     };
     final Runnable scanSoon = this::scan;
+    final Runnable settle1 = this::scan, settle2 = this::scan, settle3 = this::scan;
+    long lastScanAt;
+    /** 화면이 바뀌는 중(페이지 넘김 등): 최대 60ms마다 바로 읽고, 멈춘 뒤에도 0.12·0.3·0.6초에 다시 읽어 잡초 위치를 맞춘다. */
+    void quickScan() {
+        long now = SystemClock.uptimeMillis();
+        h.removeCallbacks(scanSoon);
+        if (now - lastScanAt >= 60) scan(); else h.postDelayed(scanSoon, 60 - (now - lastScanAt));
+        h.removeCallbacks(settle1); h.removeCallbacks(settle2); h.removeCallbacks(settle3);
+        h.postDelayed(settle1, 120); h.postDelayed(settle2, 300); h.postDelayed(settle3, 600);
+    }
 
     @Override public void onAccessibilityEvent(AccessibilityEvent e) {
         if (stage == null) return;
@@ -214,10 +224,7 @@ public final class CarrotService extends AccessibilityService {
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && (pkg.equals(launcher) || pkg.contains("packageinstaller"))) {
             logTree("window " + pkg + " " + e.getClassName());
         }
-        if (pkg.equals(launcher) || pkg.contains("packageinstaller") || type == AccessibilityEvent.TYPE_WINDOWS_CHANGED) {
-            h.removeCallbacks(scanSoon);
-            h.postDelayed(scanSoon, 90);
-        }
+        if (pkg.equals(launcher) || pkg.contains("packageinstaller") || type == AccessibilityEvent.TYPE_WINDOWS_CHANGED) quickScan();
     }
 
     void onDeleteTapped(String pkg, String text) {
@@ -262,6 +269,7 @@ public final class CarrotService extends AccessibilityService {
 
     void scan() {
         if (stage == null) return;
+        lastScanAt = SystemClock.uptimeMillis();
         boolean visible = false, home = false;
         Map<String, Rect> icons = new LinkedHashMap<>();
         Set<String> selected = new HashSet<>();
