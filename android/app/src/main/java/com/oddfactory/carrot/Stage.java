@@ -63,7 +63,24 @@ final class Stage extends View {
             "e01_cat", 160, "e01_cat@1.12", 70, "e01_cat@0.6", 70, "e01_cat@0.25", 70, "e00_sprout", 300, "e00_sprout@1.15", 70,
             "e00_sprout@0.4", 70, "e00_sprout@0.05", 60);
 
-    enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, ENTER, EXIT, OFF }
+    // 볼 당김(꾹 눌러 끌기): 앞 3장은 들어 올려지는 중, 뒤 2장을 누르고 있는 동안 반복
+    static final Clip PULL_IN = new Clip("pull_right_mid", 120, "pull_right_mid2", 140, "pull_right_peak", 160);
+    static final Clip PULL_LOOP = new Clip("pull_right_struggle_a", 150, "pull_right_struggle_b", 150);
+    static final Clip PULL_OUT = new Clip("pull_right_peak", 140, "pull_right_mid", 120, "master", 200);
+    // 한 번 톡: 오늘의 수확(당근을 쑥 뽑아 들어 보임)
+    static final Clip HARVEST = new Clip("master", 200, "h01_notice", 220, "m05_harvest", 240, "m05b_harvest_v2", 300,
+            "h03_popout", 220, "k05_harvest", 1400, "master", 300);
+    // 두 번 톡: 정원 초대(손 흔들기) 뒤 메뉴
+    static final Clip INVITE = new Clip("master", 150, "m06_invite", 160, "m06b_invite", 160, "k06_invite", 1100,
+            "m06b_invite", 160, "m06_invite", 160, "master", 200);
+    static final long WALK_MAX = 1500; // 산책 한 번에 걷는 최대 시간(ms)
+
+    enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, ENTER, EXIT, DRAG, OFF }
+
+    interface Listener { void bodyAt(RectF r); }
+    Listener listener;
+    final RectF body = new RectF();
+    float grabDX, grabDY; long dragT0; boolean dragLoop;
     enum Goal { WANDER, DELETE_ONE, LOAD }
 
     final Sprites sp;
@@ -218,8 +235,20 @@ final class Stage extends View {
 
     String pick() {
         List<String> ks = new ArrayList<>(icons.keySet());
-        return ks.isEmpty() ? null : ks.get(rnd.nextInt(ks.size()));
+        if (ks.isEmpty()) return null;
+        if (!Float.isNaN(x)) { // 1.5초 안에 닿는 아이콘을 우선(제자리 아이콘은 빼고)
+            float reach = walkSpeed() * WALK_MAX / 1000f;
+            List<String> near = new ArrayList<>();
+            for (String k : ks) {
+                RectF r = icons.get(k);
+                float d = (float) Math.hypot(r.centerX() - charH() * 0.33f - x, r.bottom - y);
+                if (d <= reach && d > charH() * 0.15f) near.add(k);
+            }
+            if (!near.isEmpty()) return near.get(rnd.nextInt(near.size()));
+        }
+        return ks.get(rnd.nextInt(ks.size()));
     }
+    float walkSpeed() { return charH() * (goal == Goal.WANDER ? 0.55f : 0.9f); }
 
     /** 다음 할 일: 대기열(잡초) 우선, 없으면 아무 아이콘 앞으로 산책. */
     void next() {
@@ -249,7 +278,7 @@ final class Stage extends View {
 
     void arrive() {
         if (target != null && queue.contains(target)) { play(S.GRAB, GRAB); return; }
-        if (target == null && icons.isEmpty() && rnd.nextInt(3) == 0) { idle(1500 + rnd.nextInt(2000)); return; }
+        if (target == null && rnd.nextInt(3) == 0) { idle(1500 + rnd.nextInt(2000)); return; }
         play(S.ACT, rnd.nextBoolean() ? CLAP : WATER);
     }
 
@@ -262,13 +291,16 @@ final class Stage extends View {
             case ENTER:
                 if (t >= ENTER.total) idle(900);
                 break;
+            case DRAG:
+                break;
             case EXIT:
                 if (t >= EXIT.total) { s = S.OFF; x = Float.NaN; Runnable d = onExited; onExited = null; if (d != null) d.run(); }
                 break;
             case WALK: {
                 // 가던 아이콘이 화면에서 사라졌으면(페이지 넘김·다른 앱으로 전환) 새 목적지
                 if (target != null && goal == Goal.WANDER && !icons.containsKey(target)) { next(); break; }
-                float sp = charH() * (goal == Goal.WANDER ? 0.55f : 0.9f);
+                if (goal == Goal.WANDER && t >= WALK_MAX) { target = null; arrive(); break; } // 1.5초만 걷고 그 자리에서
+                float sp = walkSpeed();
                 float dx = tx - x, dy = ty - y, d = (float) Math.hypot(dx, dy);
                 if (d <= sp * dt) { x = tx; y = ty; arrive(); }
                 else { x += dx / d * sp * dt; y += dy / d * sp * dt; }
@@ -318,6 +350,7 @@ final class Stage extends View {
             case POP: return POP.at(t, false);
             case BARROW_OUT: return "b01_barrow";
             case ENTER: return ENTER.at(t, false);
+            case DRAG: return t < PULL_IN.total ? PULL_IN.at(t, false) : PULL_LOOP.at(t - PULL_IN.total, true);
             case EXIT: return EXIT.at(t, false);
             case IDLE: return (t % 3200) > 3040 ? "k01_blink" : "master";
             default: return "master";
@@ -332,13 +365,38 @@ final class Stage extends View {
             long now = SystemClock.uptimeMillis();
             float dt = Math.min(0.1f, (now - last) / 1000f); last = now;
             if (!Float.isNaN(x)) step(now, dt);
+            reportBody();
             invalidate();
             postOnAnimation(this);
         }
     };
+    void reportBody() {
+        if (listener == null) return;
+        if (!shownOnHome || Float.isNaN(x) || s == S.OFF || s == S.ENTER || s == S.EXIT) { body.setEmpty(); listener.bodyAt(body); return; }
+        float h = charH();
+        body.set(x - h * 0.3f + loc[0], y - h * 0.92f + loc[1], x + h * 0.3f + loc[0], y + loc[1]);
+        listener.bodyAt(body);
+    }
+
+    // ---- 터치(서비스의 터치 창에서) ----
+    boolean busy() { return s == S.ENTER || s == S.EXIT || s == S.OFF || s == S.GRAB || s == S.TUG || s == S.POP || s == S.BARROW_OUT; }
+    void tap() { if (!busy() && s != S.DRAG) play(S.ACT, HARVEST); }
+    void invite() { if (!busy() && s != S.DRAG) play(S.ACT, INVITE); }
+    boolean startDrag(float rawX, float rawY) {
+        if (busy()) return false;
+        grabDX = rawX - loc[0] - x; grabDY = rawY - loc[1] - y;
+        target = null; play(S.DRAG, null); return true;
+    }
+    void dragTo(float rawX, float rawY) {
+        if (s != S.DRAG) return;
+        x = Math.max(0, Math.min(getWidth(), rawX - loc[0] - grabDX));
+        y = Math.max(charH() * 0.9f, Math.min(getHeight(), rawY - loc[1] - grabDY));
+    }
+    void endDrag() { if (s == S.DRAG) { play(S.ACT, PULL_OUT); } }
+
     long pausedAt;
     void resume() { if (running) return; running = true; long now = SystemClock.uptimeMillis(); if (pausedAt > 0) t0 += now - pausedAt; last = now; postOnAnimation(tick); }
-    void pause() { running = false; pausedAt = SystemClock.uptimeMillis(); removeCallbacks(tick); }
+    void pause() { running = false; pausedAt = SystemClock.uptimeMillis(); removeCallbacks(tick); if (listener != null) { body.setEmpty(); listener.bodyAt(body); } }
     void stop() { pause(); }
 
     @Override protected void onDraw(Canvas c) {

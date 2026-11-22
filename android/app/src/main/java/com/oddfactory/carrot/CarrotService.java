@@ -21,7 +21,15 @@ import android.os.Looper;
 import android.os.Process;
 import android.os.SystemClock;
 import android.os.UserHandle;
+import android.view.Gravity;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.graphics.Typeface;
+import android.graphics.RectF;
+import android.graphics.drawable.GradientDrawable;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -50,6 +58,8 @@ public final class CarrotService extends AccessibilityService {
 
     WindowManager wm;
     Stage stage;
+    View grip, menu;              // 캐릭터 몸 위치에만 있는 터치 창, 두 번 톡 메뉴
+    WindowManager.LayoutParams gripLp;
     SharedPreferences prefs;
     final Handler h = new Handler(Looper.getMainLooper());
     String launcher = "";
@@ -85,6 +95,18 @@ public final class CarrotService extends AccessibilityService {
         lp.setTitle("CarrotStage");
         stage.setVisibility(android.view.View.INVISIBLE);
         wm.addView(stage, lp);
+        // 터치 창: 캐릭터 몸 크기만큼만 화면을 받고, 나머지는 아래 앱으로 그대로 간다
+        grip = new View(this);
+        grip.setOnTouchListener(this::onGripTouch);
+        gripLp = new WindowManager.LayoutParams(1, 1, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                PixelFormat.TRANSLUCENT);
+        gripLp.gravity = Gravity.TOP | Gravity.START;
+        gripLp.setTitle("CarrotGrip");
+        grip.setVisibility(View.GONE);
+        wm.addView(grip, gripLp);
+        stage.listener = this::placeGrip;
         refreshStale();
         h.post(poll);
         log("connected launcher=" + launcher);
@@ -332,6 +354,83 @@ public final class CarrotService extends AccessibilityService {
         } catch (Exception ignored) {}
     }
 
+    // ---- 터치 ----
+    int gx = -1, gy = -1, gw = -1, gh = -1;
+    void placeGrip(RectF r) {
+        if (grip == null) return;
+        boolean on = !r.isEmpty();
+        if (!on) { if (grip.getVisibility() != View.GONE) grip.setVisibility(View.GONE); return; }
+        int x = Math.round(r.left), y = Math.round(r.top), w = Math.round(r.width()), hh = Math.round(r.height());
+        if (grip.getVisibility() != View.VISIBLE) { grip.setVisibility(View.VISIBLE); gx = -1; }
+        if (x == gx && y == gy && w == gw && hh == gh) return;
+        gx = x; gy = y; gw = w; gh = hh;
+        gripLp.x = x; gripLp.y = y; gripLp.width = w; gripLp.height = hh;
+        try { wm.updateViewLayout(grip, gripLp); } catch (RuntimeException ignored) {}
+    }
+
+    float downX, downY; long lastTapAt; boolean dragging; Runnable pendingTap, longPress;
+    boolean onGripTouch(View v, MotionEvent e) {
+        if (stage == null) return true;
+        float rx = e.getRawX(), ry = e.getRawY();
+        float dp = getResources().getDisplayMetrics().density;
+        switch (e.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                downX = rx; downY = ry; dragging = false;
+                longPress = () -> dragging = stage.startDrag(downX, downY);
+                h.postDelayed(longPress, 350);
+                return true;
+            case MotionEvent.ACTION_MOVE:
+                if (!dragging && Math.hypot(rx - downX, ry - downY) > 10 * dp) { h.removeCallbacks(longPress); dragging = stage.startDrag(downX, downY); }
+                if (dragging) stage.dragTo(rx, ry);
+                return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                h.removeCallbacks(longPress);
+                if (dragging) { dragging = false; stage.endDrag(); return true; }
+                if (e.getActionMasked() == MotionEvent.ACTION_CANCEL) return true;
+                long now = SystemClock.uptimeMillis();
+                if (now - lastTapAt < 300 && pendingTap != null) { // 두 번 톡 → 정원 초대 + 메뉴
+                    h.removeCallbacks(pendingTap); pendingTap = null; lastTapAt = 0;
+                    stage.invite(); showMenu(); return true;
+                }
+                lastTapAt = now;
+                pendingTap = () -> { pendingTap = null; stage.tap(); };
+                h.postDelayed(pendingTap, 300);
+                return true;
+        }
+        return true;
+    }
+
+    void showMenu() {
+        hideMenu();
+        float dp = getResources().getDisplayMetrics().density;
+        LinearLayout box = new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL);
+        int p = Math.round(10 * dp); box.setPadding(p, p, p, p);
+        GradientDrawable bg = new GradientDrawable(); bg.setColor(0xFFFFFBF2); bg.setCornerRadius(16 * dp); bg.setStroke(Math.round(3 * dp), 0xFF3A2418);
+        box.setBackground(bg);
+        Typeface tf = null; try { tf = getResources().getFont(R.font.maple_bold); } catch (Exception ignored) {}
+        String[] labels = {"설정 열기", "캬롯 종료", "닫기"};
+        Runnable[] acts = {
+                () -> { hideMenu(); Intent i = new Intent(this, MainActivity.class); i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(i); },
+                () -> { hideMenu(); dismiss(null); },
+                this::hideMenu};
+        for (int i = 0; i < labels.length; i++) {
+            Button b = new Button(this); b.setText(labels[i]); b.setAllCaps(false); if (tf != null) b.setTypeface(tf);
+            final Runnable r = acts[i]; b.setOnClickListener(v -> r.run());
+            box.addView(b);
+        }
+        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(-2, -2, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT);
+        lp.gravity = Gravity.TOP | Gravity.START;
+        int sw = getResources().getDisplayMetrics().widthPixels;
+        lp.x = Math.round(Math.max(8 * dp, Math.min(sw - 200 * dp, gx + gw / 2f - 100 * dp)));
+        lp.y = Math.round(Math.max(24 * dp, gy - 190 * dp));
+        box.setOnTouchListener((v, ev) -> { if (ev.getActionMasked() == MotionEvent.ACTION_OUTSIDE) hideMenu(); return false; });
+        menu = box; wm.addView(box, lp);
+    }
+    void hideMenu() { if (menu != null) { try { wm.removeView(menu); } catch (RuntimeException ignored) {} menu = null; } }
+
     // ---- 첫 화면에서 부르는 것 ----
     /** 시작: 땅에서 솟아오르며 등장. */
     static void summon() {
@@ -366,6 +465,8 @@ public final class CarrotService extends AccessibilityService {
     @Override public void onDestroy() {
         h.removeCallbacksAndMessages(null);
         if (la != null) la.unregisterCallback(appsCb);
+        hideMenu();
+        if (grip != null) try { wm.removeView(grip); } catch (RuntimeException ignored) {}
         if (stage != null) { stage.stop(); try { wm.removeView(stage); } catch (RuntimeException ignored) {} }
         stage = null;
         if (current == this) current = null;

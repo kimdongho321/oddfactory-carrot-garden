@@ -23,6 +23,9 @@ FRAMES = [
     "wn_lower1", "wn_lower2", "wn_grab_v2", "wn_pop",
     "b01_barrow",
     "e00_sprout", "e01_cat", "e01_cat_L", "e01_cat_R", "e01_cat_in", "e02_blink", "e03_hands", "e04_knee", "e05_rise",
+    "pull_right_mid", "pull_right_mid2", "pull_right_peak", "pull_right_struggle_a", "pull_right_struggle_b",
+    "h01_notice", "m05_harvest", "m05b_harvest_v2", "h03_popout", "k05_harvest",
+    "m06_invite", "m06b_invite", "k06_invite",
 ]
 
 
