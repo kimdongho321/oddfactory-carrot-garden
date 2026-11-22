@@ -69,6 +69,7 @@ public final class CarrotService extends AccessibilityService {
     Set<String> lastSelected = new HashSet<>();
     boolean selecting;
     long lastLog;
+    int scrollLogLeft = 400;
     String lastSig = "";
 
     static boolean shown(SharedPreferences p) { return p.getBoolean("shown", false); }
@@ -220,6 +221,12 @@ public final class CarrotService extends AccessibilityService {
         } else if (type == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             String t = eventLabel(e);
             if (t != null && t.contains("삭제") && (pkg.equals(launcher) || pkg.contains("packageinstaller"))) onDeleteTapped(pkg, t);
+        }
+        if (type == AccessibilityEvent.TYPE_VIEW_SCROLLED && pkg.equals(launcher) && scrollLogLeft > 0) { // 페이지 넘김 신호 조사용(최근 400개만)
+            scrollLogLeft--;
+            log("scroll " + e.getClassName() + " x=" + e.getScrollX() + "/" + e.getMaxScrollX() + " y=" + e.getScrollY()
+                    + (Build.VERSION.SDK_INT >= 28 ? " dx=" + e.getScrollDeltaX() : "") + " from=" + e.getFromIndex() + " to=" + e.getToIndex()
+                    + " n=" + e.getItemCount() + " t=" + (SystemClock.uptimeMillis() % 100000));
         }
         if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && (pkg.equals(launcher) || pkg.contains("packageinstaller"))) {
             logTree("window " + pkg + " " + e.getClassName());

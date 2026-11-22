@@ -235,9 +235,9 @@ final class Stage extends View {
     void setStale(Set<String> labels) { stale = labels; invalidate(); }
     void setScale(float k) { scale = k; invalidate(); }
 
-    // 잡초 자리: 아이콘 그림(칸 위쪽 약 70%) 오른쪽 아래 모서리
-    static float weedX(RectF r) { return r.centerX() + r.width() * 0.27f; }
-    static float weedY(RectF r) { return r.top + r.height() * 0.70f; }
+    // 잡초 자리: 아이콘 그림 위에서 돋아난 것처럼(아이콘 그림 가운데 아래쪽에 뿌리)
+    static float weedX(RectF r) { return r.centerX(); }
+    static float weedY(RectF r) { return r.top + r.height() * 0.64f; }
 
     // ---- 크기 ----
     /** 캐릭터 키: 화면(홈·다른 앱)과 관계없이 항상 같은 크기. 설정의 크기 배율만 반영. */
@@ -426,7 +426,7 @@ final class Stage extends View {
                 if (!weedy || (holding && k.equals(target))) continue;
                 // 아이콘 그림 오른쪽 아래 모서리에서 돋아나 살랑살랑(칸마다 박자를 조금씩 다르게)
                 RectF r = e.getValue();
-                float ww = r.width() * 0.42f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
+                float ww = r.width() * 0.5f, wh = ww * sp.weed.getHeight() / sp.weed.getWidth();
                 float cx = weedX(r), by = weedY(r);
                 float sway = (float) Math.sin(SystemClock.uptimeMillis() / 380.0 + k.hashCode() % 7) * 5f;
                 c.save(); c.rotate(sway, cx, by);
