@@ -88,10 +88,9 @@ def compose_lift(pose, char_h=320, foot_x=440, wheel_x=None, want=None):
     return best, wx
 
 
-# 손잡이 들어 털어 쏟기: 캬롯은 바닥에 선 자리 그대로(발 위치 고정), 주먹 높이만큼만 수레가 기울고(최대 16° 안팎)
-# 바퀴가 그만큼 살짝 구른다. 들어올린 뒤 위아래로 덜컹덜컹 털어서 짐을 쏟는다(3번 칸부터 짐이 날아감).
-SEQ = [("push_a", 160), ("lift_crouch", 200), ("lift_up1", 160), ("lift_up2", 220), ("lift_up1", 110), ("lift_up2", 130),
-       ("lift_up1", 110), ("lift_up2", 220), ("lift_ease", 300), ("push_a", 380)]
+# 손잡이 들어 쏟기: 캬롯은 바닥에 선 자리 그대로(발 위치 고정), 주먹 높이만큼 수레가 기울고 바퀴가 그만큼 살짝 구른다.
+# 얼굴 높이까지 든 3번 칸에서 짐이 쏟아진다.
+SEQ = [("push_a", 160), ("lift_crouch", 200), ("lift_up1", 160), ("lift_up2", 650), ("lift_ease", 300), ("push_a", 380)]
 
 if __name__ == "__main__":
     meta = []
