@@ -52,6 +52,8 @@
   "push_b",
   "push_pass_b",
   "bw2_toss",
-  "bw2_lift"
+  "bw2_regrip",
+  "bw2_lift",
+  "wn_tug"
  ]
 }

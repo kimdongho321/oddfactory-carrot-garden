@@ -56,7 +56,7 @@ final class Stage extends View {
     static final Clip WATER = new Clip("i01a_water", 173, "i01_water", 200, "i01b_water", 200, "i01_water", 200, "i01b_water", 200,
             "i01_water", 200, "i01b_water", 200, "i01a_water", 173, "master", 200);
     static final Clip GRAB = new Clip("wn_lower1", 160, "wn_lower2", 150, "wn_grab_v2", 220);
-    static final Clip TUG = new Clip("wn_grab_v2", 220, "wn_lower2", 140);
+    static final Clip TUG = new Clip("wn_grab_v2", 200, "wn_tug", 260); // 잡고 당기기 반복
     // 텃밭에서 뽑기 성공: 쑥 뽑음 → 뒤로 넘어가며 물러남 → 엉덩방아 → 주저앉아 웃음 → 일어남
     // 쑥 뽑힌 반동으로 살짝 솟았다가(떠 있음) 엉덩방아로 바닥에 털썩
     static final Clip FALL = new Clip("wn_pop", 120, "wn_pop^0.05", 80, "fall_0^0.13", 90, "fall_0^0.16", 90, "fall_0^0.09", 80,
@@ -93,9 +93,10 @@ final class Stage extends View {
     // 삭제가 끝나면: 가까운 화면 끝으로 밀고 가서 바퀴를 축으로 수레를 기울여 짐을 화면 밖으로 쏟는다.
     // 수레 밀며 걷기: 왼발 → 지나가는 발 → 오른발 → 지나가는 발(몸이 살짝 위로)
     static final Clip PUSH = new Clip("push_a", 130, "push_pass_a", 110, "push_b", 130, "push_pass_b", 110);
-    static final Clip PICK = new Clip("wn_lower1", 140, "wn_lower2", 130, "wn_grab_v2", 200, "wn_lower2", 130, "wn_grab_v2", 200,
-            "wn_pop", 260, "bw2_toss", 320, "push_a", 120);
-    static final long PICK_GRAB = 140 + 130 + 200 + 130 + 200;   // 쑥 뽑히는 순간(칸의 식물이 손으로)
+    // 잡고 → 당기고 → 잡고 → 당기고 → 쑥 → 던지고 → 손이 손잡이로 돌아오며(중간) → 다시 잡음
+    static final Clip PICK = new Clip("wn_lower1", 140, "wn_lower2", 130, "wn_grab_v2", 200, "wn_tug", 240, "wn_grab_v2", 150, "wn_tug", 260,
+            "wn_pop", 260, "bw2_toss", 160, "bw2_regrip", 130, "push_a", 250);
+    static final long PICK_GRAB = 140 + 130 + 200 + 240 + 150 + 260; // 쑥 뽑히는 순간(칸의 식물이 손으로)
     static final long PICK_TOSS = PICK_GRAB + 260;               // 던지는 순간
     // 수레째 엎기(캐릭터가 손잡이를 들어 올려 엎는 그림 6장, 수레·짐 포함)
     static final Clip DUMP = new Clip("dump_0", 200, "dump_1", 220, "dump_2", 240, "dump_3", 650, "dump_4", 260, "dump_5", 700);

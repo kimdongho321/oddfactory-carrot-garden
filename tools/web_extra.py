@@ -10,7 +10,7 @@ import build_web as bw
 A = os.path.join(bw.ROOT, "android", "app", "src", "main", "assets")
 FR = os.path.join(A, "frames")
 SIZE = 512
-CW, CH = 700, 520          # 장면 캔버스
+CW, CH = 1150, 520          # 장면 캔버스
 CHAR_H = 300                # 캐릭터 키(px)
 
 
@@ -67,9 +67,9 @@ class Scene:
 
     def render(self, name, x, y, tilt=0, stack=(), flies=(), ground=None):
         c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255))
-        if ground is not None:  # 아직 안 뽑은 잡초(칸)
-            it, gx = ground; self.item(c, it, gx, y, 0)
         self.paste_barrow(c, self.barrow, x, y, tilt)
+        if ground is not None:  # 아직 안 뽑은 잡초(칸): 수레 손잡이 앞에 보이게
+            it, gx = ground; self.item(c, it, gx, y, 0)
         for i, it in enumerate(stack):
             sx, sy = self.slot(x, y, i, tilt); self.item(c, it, sx, sy, ((i * 53) % 21 - 10) + tilt)
         self.paste_barrow(c, self.front, x, y, tilt)
@@ -90,29 +90,29 @@ def build(out_dir, stamp):
     Y = 440
 
     def put(name, img, ms):
-        sq = Image.new("RGB", (CW, CW), "white"); sq.paste(img, (0, (CW - CH) // 2))
-        sq.resize((SIZE, SIZE), Image.NEAREST).save(os.path.join(out_dir, name + ".png"))
+        img.resize((round(CW * 0.8), round(CH * 0.8)), Image.NEAREST).save(os.path.join(out_dir, name + ".png"))  # 가로로 넓은 장면
         out.append({"src": "frames/" + name + ".png?v=" + stamp, "ms": ms, "name": name, "tf": ""})
 
     # 1) 수레로 모으기: 밀고 가서 → 평소 잡초 뽑기 → 던져 넣기, 4번
-    n = 0; x = 110.0
-    pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_pop", 260)]
+    n = 0; x = 60.0
+    pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_tug", 240), ("wn_grab_v2", 150), ("wn_tug", 260), ("wn_pop", 260)]
     for k in range(4):
-        tx = 130 + k * 25
-        steps = 8
+        tx = 40 + k * 200                     # 고른 앱 칸까지 수레를 밀고 간다
+        steps = max(4, round(abs(tx - x) / 22))
         for i in range(steps):
             xx = x + (tx - x) * (i + 1) / steps
             put(f"x_col_{n}", sc.render(("push_a", "push_pass_a", "push_b", "push_pass_b")[i % 4], xx, Y, 0, items[:k],
                                          ground=(items[k], xx + CHAR_H * 0.285 + (tx - xx))), 130); n += 1
         x = tx; gx = x + CHAR_H * 0.285
         for j, (f, ms) in enumerate(pick):
-            put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < 5 else None), ms); n += 1
+            put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < len(pick) - 1 else None), ms); n += 1
         # 던지기: 손 → 짐칸 포물선 4단계
         x0, y0 = x + CHAR_H * 0.3, Y - CHAR_H * 0.55
         x1, y1 = sc.slot(x, Y, k, 0)
         for j in range(4):
             t = (j + 1) / 4; fx = x0 + (x1 - x0) * t; fy = y0 + (y1 - sc.item_w() * 0.5 - y0) * t - CHAR_H * 0.35 * 4 * t * (1 - t)
-            put(f"x_col_{n}", sc.render("bw2_toss", x, Y, 0, items[:k], [(items[k], fx, fy + sc.item_w() * 0.5, 360 * t)] if j < 3 else ()), 90); n += 1
+            # 던진 손은 바로 손잡이로 돌아가고(push_a), 당근만 날아간다
+            put(f"x_col_{n}", sc.render(("bw2_toss", "bw2_toss", "bw2_regrip", "push_a")[j], x, Y, 0, items[:k], [(items[k], fx, fy + sc.item_w() * 0.5, 360 * t)] if j < 3 else ()), 90); n += 1
         put(f"x_col_{n}", sc.render("push_a", x, Y, 0, items[:k + 1]), 250); n += 1
     motions.append({"id": "barrow_collect", "title": "여러 개 선택 → 뽑아서 수레에 싣기", "frames": out}); out = []
 

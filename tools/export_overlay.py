@@ -27,7 +27,7 @@ FRAMES = [
     "h01_notice", "m05_harvest", "m05b_harvest_v2", "h03_popout", "k05_harvest",
     "m06_invite", "m06b_invite", "k06_invite",
     "fall_0", "fall_1", "fall_2",
-    "push_a", "push_pass_a", "push_b", "push_pass_b", "bw2_toss", "bw2_lift",
+    "push_a", "push_pass_a", "push_b", "push_pass_b", "bw2_toss", "bw2_regrip", "bw2_lift", "wn_tug",
 ]
 
 

@@ -17,7 +17,7 @@ SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
 DROP = {}
 # 머리 폭 자동 측정이 안 맞는 프레임은 눈으로 맞춘 배율을 쓴다(스탠딩 머리 크기 기준)
-SCALE = {"fall_0": 0.83, "fall_1": 0.83, "fall_2": 0.83, "wn_pop": 0.92, "m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
+SCALE = {"wn_tug": 0.8, "wn_lower1": 0.86, "wn_lower2": 0.8, "wn_grab_v2": 0.8, "wn_pop": 0.8, "fall_0": 0.83, "fall_1": 0.83, "fall_2": 0.83, "m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -62,7 +62,7 @@ MOTIONS = [
         ("master", 500, True), ("b01_barrow", 1400, True)]),
     ("delete_fall", "삭제 → 잡초 뽑고 엉덩방아", [
         ("master", 400, True), ("wn_lower1", 160, True), ("wn_lower2", 150, True), ("wn_grab_v2", 220, True),
-        ("wn_lower2", 140, True), ("wn_grab_v2", 220, True), ("wn_lower2", 140, True), ("wn_grab_v2", 220, True),
+        ("wn_tug", 260, True), ("wn_grab_v2", 160, True), ("wn_tug", 260, True), ("wn_grab_v2", 160, True), ("wn_tug", 300, True),
         ("wn_pop", 120, True), ("wn_pop", 80, True, "translateY(-5%)"),
         ("fall_0", 90, True, "translateY(-13%)"), ("fall_0", 90, True, "translateY(-16%)"), ("fall_0", 80, True, "translateY(-9%)"),
         ("fall_1", 70, True, "scale(1.06,0.92)"), ("fall_1", 450, True), ("fall_2", 900, True),
