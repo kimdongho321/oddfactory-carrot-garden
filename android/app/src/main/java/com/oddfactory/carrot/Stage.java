@@ -334,7 +334,7 @@ final class Stage extends View {
     final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
     { shade.setColor(0x40000000); }
     void outlined(Canvas c, Bitmap b, RectF r, Paint p) {
-        if (!GardenActivity.open) { c.drawBitmap(b, null, r, p); return; } // 텃밭 화면에서만
+        if (!GardenActivity.shown) { c.drawBitmap(b, null, r, p); return; } // 텃밭 화면에서만
         float o = Math.max(2f, charH() * 0.014f);
         rim.setAlpha(p.getAlpha());
         for (int i = 0; i < 8; i++) {
@@ -344,7 +344,7 @@ final class Stage extends View {
         c.drawBitmap(b, null, r, p);
     }
     void footShadow(Canvas c, float fx, float fy) {
-        if (!GardenActivity.open) return;
+        if (!GardenActivity.shown) return;
         float h = charH(); c.drawOval(new RectF(fx - h * 0.2f, fy - h * 0.035f, fx + h * 0.2f, fy + h * 0.035f), shade);
     }
     final Random rnd = new Random();
