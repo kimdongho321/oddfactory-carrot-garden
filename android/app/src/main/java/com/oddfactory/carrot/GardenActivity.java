@@ -321,8 +321,15 @@ public final class GardenActivity extends Activity {
     };
     App find(String pkg) { for (App a : apps) if (a.pkg.equals(pkg)) return a; return null; }
 
+    @Override public void onWindowFocusChanged(boolean f) {
+        super.onWindowFocusChanged(f);
+        if (f && pulling != null && SystemClock.uptimeMillis() - pullAskedAt > 400) h.postDelayed(this::checkPullCancelled, 700);
+    }
+
     void checkPullCancelled() {
         if (pulling == null) return;
+        // 삭제 확인 창이 아직 떠 있으면(텃밭이 포커스 없음) 취소로 보지 않는다 → 다음 창이 겹쳐 뜨지 않게
+        if (!hasWindowFocus()) return;
         try { getPackageManager().getPackageInfo(pulling.pkg, 0); } catch (Exception gone) { return; }
         App a = pulling; pulling = null;
         if (multi) { a.inBarrow = false; CarrotService.barrowRemove(a.item); garden.invalidate(); } // 취소한 건 수레에서 꺼내 제자리로
