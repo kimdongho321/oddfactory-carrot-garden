@@ -60,6 +60,8 @@
   "dump_p1",
   "dump_p2",
   "dump_p3",
-  "dump_p4"
+  "dump_p4",
+  "dump_l1",
+  "dump_l2"
  ]
 }

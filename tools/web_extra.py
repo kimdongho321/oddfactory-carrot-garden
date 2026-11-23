@@ -123,7 +123,7 @@ def build(out_dir, stamp):
     for i, f in enumerate(dm["frames"]):
         d = load(os.path.join(FR, f"dump_{i}.png")); d = d.resize((round(d.width * kk), round(d.height * kk)), Image.NEAREST)
         ox = 60 - dm["frames"][0]["foot"][0] * kk + 200; oy = Y - dm["ground"] * kk if "ground" in dm else Y - f["foot"][1] * kk
-        steps = max(1, f["ms"] // 80)
+        steps = max(1, f["ms"] // 80) if (flies or (i == 3 and stack)) else 1  # 짐이 날아갈 때만 쪼개고, 같은 그림 반복 없음
         for st in range(steps):
             c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255)); c.alpha_composite(d, (round(ox), round(oy)))
             if i == 3 and st == 0 and stack:
@@ -133,6 +133,7 @@ def build(out_dir, stamp):
                 stack = []
             for j, it in enumerate(stack):
                 sc.item(c, it, ox + f["bin"][0] * kk + (j % 3 - 1) * 20, oy + f["bin"][1] * kk - (j // 3) * 18, ((j * 53) % 21 - 10) + f["tilt"])
+            flies = [fl for fl in flies if fl[1] < CW + 80 and fl[2] < CH + 80]  # 화면 밖으로 나간 짐은 뺌
             for fl in flies:
                 dt = 0.08; fl[4] += 3.2 * dt; fl[1] += fl[3] * CHAR_H * dt; fl[2] += fl[4] * CHAR_H * dt; fl[6] += fl[5] * dt
                 sc.item(c, fl[0], fl[1], fl[2], fl[6])

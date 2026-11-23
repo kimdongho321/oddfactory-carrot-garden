@@ -66,7 +66,8 @@ def compose(pose, tilt, wheel_x=None, char_h=320):
     return c, (foot_x, foot_y), (wheel_x + bx, ground + by), wheel_x
 
 
-SEQ = [("push_a", 0, 220), ("dump_p1", 16, 220), ("dump_p2", 32, 220), ("dump_p3", 48, 650), ("dump_p2", 24, 240), ("dump_p1", 10, 200), ("dump_p4", 0, 700)]
+SEQ = [("push_a", 0, 200), ("dump_p1", 16, 200), ("dump_p2", 32, 200), ("dump_p3", 48, 380),
+       ("dump_l1", 30, 180), ("dump_l2", 14, 170), ("push_a", 0, 160), ("dump_p4", 0, 420), ("bw2_regrip", 0, 140), ("push_a", 0, 400)]
 
 if __name__ == "__main__":
     meta = []
