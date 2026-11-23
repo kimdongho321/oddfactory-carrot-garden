@@ -99,11 +99,11 @@ def build(out_dir, stamp):
     pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_pop", 260)]
     for k in range(4):
         tx = 130 + k * 25
-        steps = 6
+        steps = 8
         for i in range(steps):
             xx = x + (tx - x) * (i + 1) / steps
-            put(f"x_col_{n}", sc.render("push_a" if i % 2 == 0 else "push_b", xx, Y, 0, items[:k],
-                                         ground=(items[k], xx + CHAR_H * 0.285 + (tx - xx))), 170); n += 1
+            put(f"x_col_{n}", sc.render(("push_a", "push_pass_a", "push_b", "push_pass_b")[i % 4], xx, Y, 0, items[:k],
+                                         ground=(items[k], xx + CHAR_H * 0.285 + (tx - xx))), 130); n += 1
         x = tx; gx = x + CHAR_H * 0.285
         for j, (f, ms) in enumerate(pick):
             put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < 5 else None), ms); n += 1
@@ -116,20 +116,12 @@ def build(out_dir, stamp):
         put(f"x_col_{n}", sc.render("push_a", x, Y, 0, items[:k + 1]), 250); n += 1
     motions.append({"id": "barrow_collect", "title": "여러 개 선택 → 뽑아서 수레에 싣기", "frames": out}); out = []
 
-    # 2) 수레 엎기: 바퀴를 축으로 0→70도, 35도 넘으면 짐이 앞으로 쏟아져 날아감
-    x = 160.0; flies = []; stack = list(items); n = 0
-    for t in range(0, 1750, 70):
-        kk = 0 if t < 150 else (t - 150) / 600 if t < 750 else 1 if t < 1150 else 1 - (t - 1150) / 300 if t < 1450 else 0
-        tilt = 40 * max(0, min(1, kk))
-        if stack and tilt > 28:
-            for i, it in enumerate(stack):
-                sx, sy = sc.slot(x, Y, i, tilt)
-                flies.append([it, sx, sy, 1.2 + 0.25 * i, -(0.9 + 0.2 * (i % 2)), 400 + 80 * i, 0])
-            stack = []
-        for f in flies:  # 한 칸(70ms)씩 포물선
-            dt = 0.07; f[4] += 3.2 * dt; f[1] += f[3] * CHAR_H * dt; f[2] += f[4] * CHAR_H * dt; f[6] += f[5] * dt
-        name = "push_a" if t < 150 or t >= 1450 else "bw2_lift"
-        put(f"x_dump_{n}", sc.render(name, x, Y, tilt, stack, [(f[0], f[1], f[2], f[6]) for f in flies]), 70); n += 1
+    # 2) 수레 엎기: 캬롯이 손잡이를 들어 올려 수레째 엎는 그림 6장
+    for i, ms in enumerate((200, 220, 240, 650, 260, 700)):
+        d = load(os.path.join(FR, f"dump_{i}.png"))
+        c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255))
+        c.alpha_composite(d, ((CW - d.width) // 2, Y - d.height))
+        put(f"x_dump_{i}", c.convert("RGB"), ms)
     motions.append({"id": "barrow_dump", "title": "삭제 끝 → 화면 끝에서 수레 엎기", "frames": out}); out = []
 
     # 3) 햇님이

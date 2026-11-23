@@ -15,6 +15,7 @@ final class Sprites {
     final Bitmap weed;
     // 수레(따로 그린 빈 수레, barrow.json): 손잡이 끝·바닥·바퀴축·짐칸 위치(수레 그림 px), 밀 때 손 위치(캐릭터 프레임 px)
     Bitmap barrow, barrowFront;
+    int dw, dh; float dFootX, dFootY; // 수레째 엎기 프레임(캐릭터+수레 한 그림)
     float bGripX, bGripH, bGroundY, bAxleX, bBinL, bBinR, bRimY, bFrontY, handX, handH;
     private final Context ctx;
     private final Map<String, Bitmap> cache = new HashMap<>();
@@ -33,6 +34,10 @@ final class Sprites {
             bRimY = (float) b.getDouble("rimY"); bFrontY = (float) b.getDouble("frontY");
             handX = (float) b.getDouble("handX"); handH = (float) b.getDouble("handH");
         } catch (Exception e) { barrow = null; }
+        try {
+            JSONObject d = new JSONObject(read("frames/dump.json"));
+            dw = d.getInt("w"); dh = d.getInt("h"); dFootX = (float) d.getDouble("footX"); dFootY = (float) d.getDouble("footY");
+        } catch (Exception ignored) {}
     }
 
     Bitmap frame(String name) {

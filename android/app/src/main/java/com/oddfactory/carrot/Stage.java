@@ -91,12 +91,14 @@ final class Stage extends View {
     // 고를 때마다: 빈 수레를 밀고 그 칸까지 → 손을 놓고 평소 잡초 뽑기(잡기·버티기·쑥) → 뽑은 것을 수레에 던져 넣음
     // 수레 그림은 따로(barrow.png). 짐은 짐칸 안에 들어가고, 앞판을 다시 덮어 그려 '담긴' 모양으로.
     // 삭제가 끝나면: 가까운 화면 끝으로 밀고 가서 바퀴를 축으로 수레를 기울여 짐을 화면 밖으로 쏟는다.
-    static final Clip PUSH = new Clip("push_a", 170, "push_b", 170);
+    // 수레 밀며 걷기: 왼발 → 지나가는 발 → 오른발 → 지나가는 발(몸이 살짝 위로)
+    static final Clip PUSH = new Clip("push_a", 130, "push_pass_a", 110, "push_b", 130, "push_pass_b", 110);
     static final Clip PICK = new Clip("wn_lower1", 140, "wn_lower2", 130, "wn_grab_v2", 200, "wn_lower2", 130, "wn_grab_v2", 200,
             "wn_pop", 260, "bw2_toss", 320, "push_a", 120);
     static final long PICK_GRAB = 140 + 130 + 200 + 130 + 200;   // 쑥 뽑히는 순간(칸의 식물이 손으로)
     static final long PICK_TOSS = PICK_GRAB + 260;               // 던지는 순간
-    static final Clip DUMP = new Clip("push_a", 150, "bw2_lift", 1300, "push_a", 300);
+    // 수레째 엎기(캐릭터가 손잡이를 들어 올려 엎는 그림 6장, 수레·짐 포함)
+    static final Clip DUMP = new Clip("dump_0", 200, "dump_1", 220, "dump_2", 240, "dump_3", 650, "dump_4", 260, "dump_5", 700);
     enum B { NONE, HOLD, WALK, PICK, DUMP }
     static final class Job { float sx, sy; Bitmap item; Runnable picked; boolean dump; Runnable done; }
     static final class Fly { Bitmap b; float x, y, vx, vy, rot, vr; boolean toBin; float t, dur, x0, y0, x1, y1; int slot; }
@@ -173,10 +175,9 @@ final class Stage extends View {
                 break;
             }
             case DUMP: {
-                // 들어 올리며 기울이기(0→70도) → 잠깐 → 내려놓기, 기울어지는 동안 짐을 쏟음
-                float k = t < 150 ? 0 : t < 750 ? (t - 150) / 600f : t < 1150 ? 1 : t < 1450 ? 1 - (t - 1150) / 300f : 0;
-                tilt = 40 * (k < 0 ? 0 : k > 1 ? 1 : k);
-                if (!stack.isEmpty() && tilt > 28) eject();
+                // 그림 속 짐이 쏟아지는 장면(dump_3)에 맞춰 실제 짐도 화면 밖으로 날려 보낸다
+                long ejectAt = DUMP.ms[0] + DUMP.ms[1] + DUMP.ms[2];
+                if (!stack.isEmpty() && t >= ejectAt) eject();
                 if (t >= DUMP.total) barrowAlpha = Math.max(0, 1 - (t - DUMP.total) / 300f);
                 if (t >= DUMP.total + 300) {
                     Runnable d = job != null ? job.done : null; job = null; bs = B.NONE; stack.clear(); tilt = 0; barrowAlpha = 1f;
@@ -260,6 +261,17 @@ final class Stage extends View {
     }
 
     void drawBarrow(Canvas c, long now) {
+        if (bs == B.DUMP && sp.dw > 0) { // 수레째 그린 엎기 프레임
+            Bitmap d = sp.frame(DUMP.at(now - bt0, false));
+            if (d != null) {
+                float k = charH() / sp.h, w = sp.dw * k, h = sp.dh * k, left = x - sp.dFootX * k, top = y - sp.dFootY * k;
+                Paint p = new Paint(px); p.setAlpha((int) (255 * barrowAlpha));
+                c.save(); if (!faceRight) c.scale(-1, 1, x, y);
+                c.drawBitmap(d, null, new RectF(left, top, left + w, top + h), p);
+                c.restore();
+            }
+            return;
+        }
         boolean picking = bs == B.PICK;
         // 1) 뽑는 동안은 캬롯이 수레 앞(손을 놓고 잡초 쪽), 그 밖에는 캬롯이 손잡이 뒤
         drawBarrowSprite(c, false);
