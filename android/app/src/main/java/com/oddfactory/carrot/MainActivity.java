@@ -163,5 +163,5 @@ public final class MainActivity extends Activity {
     @Override protected void onPause() { appUpdates.pause(); super.onPause(); }
     @Override protected void onDestroy() { appUpdates.destroy(); testInstaller.destroy(); super.onDestroy(); }
     @Override protected void onActivityResult(int request, int result, Intent data) { super.onActivityResult(request, result, data); appUpdates.onActivityResult(request); }
-    @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (focused) appUpdates.onWindowFocus(); }
+    @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (focused) { appUpdates.onWindowFocus(); testInstaller.onFocus(); } }
 }

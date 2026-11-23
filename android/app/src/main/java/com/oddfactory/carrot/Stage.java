@@ -416,7 +416,8 @@ final class Stage extends View {
             if (show) resume(); else pause();
         }
         if (show && (Float.isNaN(x) || entering)) {
-            if (n > 0) { RectF r = icons.get(pick()); x = r.centerX() - charH() * 0.3f; y = r.bottom; }
+            if (entering) { x = getWidth() * 0.5f; y = getHeight() * 0.5f + charH() * 0.45f; } // 시작: 화면 가로·세로 한가운데서 솟아오름
+            else if (n > 0) { RectF r = icons.get(pick()); x = r.centerX() - charH() * 0.3f; y = r.bottom; }
             else { x = getWidth() * 0.5f; y = groundY(); }
             if (entering) { entering = false; enterOnHome = false; play(S.ENTER, ENTER); } else idle(1500);
         }

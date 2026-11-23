@@ -60,7 +60,7 @@ final class TestInstaller {
                     s.commit(PendingIntent.getBroadcast(a, 1000 + n, new Intent(action).setPackage(a.getPackageName()), fl).getIntentSender());
                 }
             } catch (Exception e) {
-                a.runOnUiThread(() -> { toast("테스트 잡초 " + n + " 설치 준비 실패"); installNext(); });
+                a.runOnUiThread(() -> { toast("테스트 잡초 " + n + " 설치 준비 실패: " + e.getMessage()); installNext(); });
             }
         }, "test-install").start();
     }
@@ -70,13 +70,24 @@ final class TestInstaller {
             int st = r.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE);
             if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = Build.VERSION.SDK_INT >= 33 ? r.getParcelableExtra(Intent.EXTRA_INTENT, Intent.class) : r.getParcelableExtra(Intent.EXTRA_INTENT);
-                if (confirm != null) { confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); a.startActivity(confirm); }
+                // 앞 설치 확인 창이 아직 닫히는 중이면 Android가 막는다 → 우리 화면이 다시 앞에 오면 띄운다
+                if (confirm != null) { pending = confirm; onFocus(); }
                 return;
             }
             if (st == PackageInstaller.STATUS_SUCCESS) ok++;
-            installNext();
+            else if (st != PackageInstaller.STATUS_FAILURE_ABORTED) toast("테스트 잡초 설치 실패: " + r.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE));
+            // 다음 것은 확인 창이 완전히 닫힌 뒤에
+            a.getWindow().getDecorView().postDelayed(TestInstaller.this::installNext, 600);
         }
     };
+
+    private Intent pending;
+    /** 우리 화면이 앞에 있을 때만 확인 창을 띄운다(MainActivity.onWindowFocusChanged에서도 부름). */
+    void onFocus() {
+        if (pending == null || !a.hasWindowFocus()) return;
+        Intent i = pending; pending = null;
+        try { i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); a.startActivity(i); } catch (Exception e) { toast("설치 확인 창을 열 수 없어요"); installNext(); }
+    }
 
     private void done() {
         toast("테스트 잡초 " + ok + "개 설치됨 — 텃밭에서 뽑아 보세요");
