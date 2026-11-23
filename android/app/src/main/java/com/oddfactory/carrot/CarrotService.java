@@ -441,34 +441,34 @@ public final class CarrotService extends AccessibilityService {
         try { wm.updateViewLayout(grip, gripLp); } catch (RuntimeException ignored) {}
     }
 
-    float downX, downY; long lastTapAt; boolean dragging; Runnable pendingTap, longPress;
+    float downX, downY; long lastTapAt; boolean tickling;
+    boolean dragging; Runnable pendingTap, longPress;
     boolean onGripTouch(View v, MotionEvent e) {
         if (stage == null) return true;
         float rx = e.getRawX(), ry = e.getRawY();
         float dp = getResources().getDisplayMetrics().density;
         switch (e.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                downX = rx; downY = ry; dragging = false;
-                longPress = () -> dragging = stage.startDrag(downX, downY);
+                downX = rx; downY = ry; dragging = false; tickling = false;
+                longPress = () -> dragging = stage.startDrag(downX, downY); // 꾹 누르고 끌기 → 볼 당기기
                 h.postDelayed(longPress, 350);
                 return true;
             case MotionEvent.ACTION_MOVE:
-                if (!dragging && Math.hypot(rx - downX, ry - downY) > 10 * dp) { h.removeCallbacks(longPress); dragging = stage.startDrag(downX, downY); }
+                if (!dragging && !tickling && Math.hypot(rx - downX, ry - downY) > 10 * dp) { // 바로 문지르기 → 간지럼
+                    h.removeCallbacks(longPress); tickling = stage.startTickle();
+                }
                 if (dragging) stage.dragTo(rx, ry);
+                if (tickling) stage.rub();
                 return true;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_CANCEL:
                 h.removeCallbacks(longPress);
                 if (dragging) { dragging = false; stage.endDrag(); return true; }
+                if (tickling) { tickling = false; stage.endTickle(); return true; }
                 if (e.getActionMasked() == MotionEvent.ACTION_CANCEL) return true;
                 long now = SystemClock.uptimeMillis();
-                if (now - lastTapAt < 300 && pendingTap != null) { // 두 번 톡 → 정원 초대 + 메뉴
-                    h.removeCallbacks(pendingTap); pendingTap = null; lastTapAt = 0;
-                    showMenu(); return true;
-                }
+                if (now - lastTapAt < 300) { lastTapAt = 0; showMenu(); return true; } // 두 번 톡 → 메뉴(한 번 톡은 반응 없음)
                 lastTapAt = now;
-                pendingTap = () -> { pendingTap = null; stage.tap(); };
-                h.postDelayed(pendingTap, 300);
                 return true;
         }
         return true;

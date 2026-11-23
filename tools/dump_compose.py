@@ -38,7 +38,7 @@ def rotated_barrow(bar, s, tilt):
     return big, (pad + ax, pad + ay), b
 
 
-def compose(pose, tilt, wheel_x=None, char_h=320, free_x=None):
+def compose(pose, tilt, wheel_x=None, char_h=320, free_x=None, lift=0):
     """한 장면: 바퀴는 wheel_x(바닥)에 고정, 캐릭터는 주먹이 손잡이 끝에 오도록 놓는다.
     반환: RGBA, 캐릭터 발 위치, 짐칸 가운데(바닥쪽) 위치, 바퀴 x."""
     meta = json.load(open(os.path.join(FR, "meta.json")))
@@ -62,21 +62,45 @@ def compose(pose, tilt, wheel_x=None, char_h=320, free_x=None):
     foot_y = ground
     c = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     c.alpha_composite(big, (round(wheel_x - pax), round(ground - pay)))
-    c.alpha_composite(fr, (round(foot_x - fx), round(foot_y - fy)))
+    c.alpha_composite(fr, (round(foot_x - fx), round(foot_y - lift - fy)))  # lift: 발끝 들고 뛰어오름
     return c, (foot_x, foot_y), (wheel_x + bx, ground + by), wheel_x
 
 
-# 달려가다 턱에 걸려 쏟기: 부딪힘 → 손잡이에 끌려 휘청 → 놓치고 허우적(수레 혼자 앞으로 엎어져 짐이 날아감, 3번 칸)
-# → 균형 잡기(수레가 되돌아옴) → 머쓱하게 웃기 → 다시 잡기. (자세, 기울기, ms, 놓쳤을 때 발 위치: 처음 잡은 자리 기준 +px)
-SEQ = [("push_a", 0, 110, None), ("crash_stumble", 14, 140, None), ("crash_windmill", 42, 120, 34),
-       ("crash_windmill", 72, 380, 46), ("crash_stumble", 26, 170, 40), ("crash_laugh", 0, 760, 12), ("bw2_regrip", 0, 150, None), ("push_a", 0, 380, None)]
+def compose_lift(pose, char_h=320, foot_x=440, wheel_x=None, want=None):
+    """손잡이 들어 쏟기: 캐릭터는 제자리, 주먹 높이에 손잡이 끝이 오도록 수레 기울기를 구하고
+    바퀴(바닥)를 그만큼 앞뒤로 옮긴다(수레는 바퀴로 굴러가며 들린다). wheel_x를 주면 기울기만 구하고 바퀴는 거기."""
+    meta = json.load(open(os.path.join(FR, "meta.json")))
+    fr = load(os.path.join(FR, pose + ".png"))
+    k = char_h / meta["h"]
+    fr = fr.resize((round(fr.width * k), round(fr.height * k)), Image.NEAREST)
+    fx, fy = meta["footX"] * k, meta["footY"] * k
+    b = json.load(open(os.path.join(A, "barrow.json")))
+    s = b["handH"] * k / b["gripH"]
+    ground = 700
+    h = fist(fr); hx, hy = foot_x + (h[0] - fx), ground + (h[1] - fy)
+    gx, gy = (b["gripX"] - b["axleX"]) * s, (b["gripY"] - b["groundY"]) * s
+    if want is not None:  # 이 기울기까지 들려면 몸을 얼마나 띄워야 하나(발끝 들고 폴짝)
+        a_ = math.radians(want); need = gx * math.sin(a_) + gy * math.cos(a_)
+        return want, max(0.0, (hy - ground) - need)
+    best = min(range(-12, 90), key=lambda t: abs(gx * math.sin(math.radians(t)) + gy * math.cos(math.radians(t)) - (hy - ground)))
+    a_ = math.radians(best); rgx = gx * math.cos(a_) - gy * math.sin(a_)
+    wx = hx - rgx if wheel_x is None else wheel_x
+    return best, wx
+
+
+# 손잡이 번쩍 들어 쏟기: (자세, ms). 기울기는 주먹 높이로 정하고(compose_lift), 바퀴는 화면 끝에 둔 채 캐릭터가 따라 붙는다.
+# 3번 칸(가장 높이 든 순간)에 짐이 쏟아진다.
+SEQ = [("push_a", 160, None), ("lift_crouch", 220, None), ("lift_mid", 180, None), ("lift_top", 560, 50), ("lift_ease", 300, None), ("push_a", 380, None)]
 
 if __name__ == "__main__":
     meta = []
-    base = compose("push_a", 0)[1][0]
-    for i, (pose, t, ms, dx) in enumerate(SEQ):
-        im, foot, binp, wx = compose(pose, t, free_x=None if dx is None else base + dx)
+    for i, (pose, ms, want) in enumerate(SEQ):
+        t, up = compose_lift(pose, want=want)
+        im, foot, binp, wx = compose(pose, t, lift=up if want is not None else 0)
         im.save(os.path.join(FR, f"dump_{i}.png"))
         meta.append({"ms": ms, "tilt": t, "foot": [round(foot[0], 1), foot[1]], "bin": [round(binp[0], 1), round(binp[1], 1)]})
+    for j in range(len(SEQ), 20):
+        q = os.path.join(FR, f"dump_{j}.png")
+        if os.path.exists(q): os.remove(q)
     json.dump({"w": im.width, "h": im.height, "charH": 320, "frames": meta}, open(os.path.join(FR, "dump.json"), "w"), indent=1)
     print(meta)

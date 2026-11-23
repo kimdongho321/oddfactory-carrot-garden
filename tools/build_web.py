@@ -55,7 +55,8 @@ MOTIONS = [
     ("walk", "걷기 (홈 화면 산책)", WALK * 3),
     ("clap", "박수 (산책 중 무작위)", CLAP),
     ("water", "물주기 (산책 중 무작위)", WATER),
-    ("harvest", "한 번 톡 → 오늘의 수확", HARVEST),
+    ("tickle", "문지르기 → 간지럼(움찔 → 깔깔 → 눈물 닦기)", C("master", 300) + C("tk_squirm_a", 150, "tk_squirm_b", 150) * 4 + C("tk_laugh_a", 120, "tk_laugh_b", 120) * 6 +
+     C("tk_laugh_a", 120, "tk_laugh_b", 130, "tk_laugh_a", 150, "tk_calm", 1100, "k01_blink", 120, "master", 400)),
     ("invite", "텃밭 열기 → 정원 초대", INVITE),
     ("pull", "꾹 눌러 끌기 → 볼 당김", PULL),
     ("delete_fall", "앱 하나 삭제 → 잡초 뽑고 엉덩방아", DELETE),
