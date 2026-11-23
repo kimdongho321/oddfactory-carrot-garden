@@ -49,16 +49,17 @@ final class TestInstaller {
                 PackageInstaller pi = a.getPackageManager().getPackageInstaller();
                 PackageInstaller.SessionParams p = new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
                 int id = pi.createSession(p);
-                try (PackageInstaller.Session s = pi.openSession(id);
-                     InputStream in = a.getAssets().open("testapks/t" + n + ".apk");
+                PackageInstaller.Session s = pi.openSession(id);
+                // 스트림은 commit 전에 닫는다(commit 뒤에 닫으면 예외 → 다음 설치가 바로 시작돼 확인 창이 겹쳤음)
+                try (InputStream in = a.getAssets().open("testapks/t" + n + ".apk");
                      OutputStream out = s.openWrite("t" + n + ".apk", 0, -1)) {
                     byte[] buf = new byte[16 * 1024]; int c;
                     while ((c = in.read(buf)) > 0) out.write(buf, 0, c);
                     s.fsync(out);
-                    out.close();
-                    int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
-                    s.commit(PendingIntent.getBroadcast(a, 1000 + n, new Intent(action).setPackage(a.getPackageName()), fl).getIntentSender());
                 }
+                int fl = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= 31 ? PendingIntent.FLAG_MUTABLE : 0);
+                s.commit(PendingIntent.getBroadcast(a, 1000 + n, new Intent(action).setPackage(a.getPackageName()), fl).getIntentSender());
+                try { s.close(); } catch (Exception ignored) {}
             } catch (Exception e) {
                 a.runOnUiThread(() -> { toast("테스트 잡초 " + n + " 설치 준비 실패: " + e.getMessage()); installNext(); });
             }
