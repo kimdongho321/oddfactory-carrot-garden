@@ -55,8 +55,10 @@ MOTIONS = [
     ("walk", "걷기 (홈 화면 산책)", WALK * 3),
     ("clap", "박수 (산책 중 무작위)", CLAP),
     ("water", "물주기 (산책 중 무작위)", WATER),
-    ("tickle", "문지르기 → 간지럼(움찔 → 깔깔 → 눈물 닦기)", C("master", 300) + C("tk_squirm_a", 150, "tk_squirm_b", 150) * 4 + C("tk_laugh_a", 120, "tk_laugh_b", 120) * 6 +
-     C("tk_laugh_a", 120, "tk_laugh_b", 130, "tk_laugh_a", 150, "tk_calm", 1100, "k01_blink", 120, "master", 400)),
+    ("tickle", "문지르기 → 간지럼(꾹 참고 움찔)", C("master", 300) + C("tk_squirm_a", 150, "tk_squirm_b", 150) * 6 + C("tk_squirm_a", 160, "k01_blink", 140, "master", 400)),
+    ("tickle_laugh", "[검토용·앱 미적용] 간지럼 깔깔 버전", C("master", 300) + C("tk_squirm_a", 150, "tk_squirm_b", 150) * 4 +
+     C("tk_laugh_a", 130, "tk_laugh_m", 100, "tk_laugh_c", 150, "tk_laugh_m", 100, "tk_laugh_b", 130, "tk_laugh_d", 150) * 3 +
+     C("tk_laugh_c", 150, "tk_laugh_m", 130, "tk_laugh_d", 170, "tk_laugh_m", 160, "tk_calm", 1100, "k01_blink", 120, "master", 400)),
     ("invite", "텃밭 열기 → 정원 초대", INVITE),
     ("pull", "꾹 눌러 끌기 → 볼 당김", PULL),
     ("delete_fall", "앱 하나 삭제 → 잡초 뽑고 엉덩방아", DELETE),

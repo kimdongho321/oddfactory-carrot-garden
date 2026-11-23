@@ -86,11 +86,9 @@ final class Stage extends View {
     static final long WALK_MAX = 1500; // 산책 한 번에 걷는 최대 시간(ms)
 
     enum S { IDLE, WALK, ACT, GRAB, TUG, POP, BARROW_OUT, ENTER, EXIT, DRAG, TICKLE, OFF }
-    // 간지럼: 몸을 문지르면 처음엔 꾹 참고 움찔(squirm), 계속 문지르면 깔깔(laugh), 손을 떼면 잦아들며 눈물 닦기
+    // 간지럼: 몸을 문지르는 동안 꾹 참고 움찔(squirm), 손을 떼면 눈 깜빡이며 원래대로
     static final Clip SQUIRM = new Clip("tk_squirm_a", 150, "tk_squirm_b", 150);
-    static final Clip LAUGH = new Clip("tk_laugh_a", 120, "tk_laugh_b", 120);
-    static final Clip TICKLE_OUT = new Clip("tk_laugh_a", 120, "tk_laugh_b", 130, "tk_laugh_a", 150, "tk_calm", 1100, "k01_blink", 120, "master", 200);
-    static final Clip SQUIRM_OUT = new Clip("tk_squirm_b", 150, "tk_calm", 700, "k01_blink", 120, "master", 200);
+    static final Clip SQUIRM_OUT = new Clip("tk_squirm_a", 160, "k01_blink", 140, "master", 200);
     long rubMs, lastRub;
 
     // ================= 수레(여러 개 뽑기) =================
@@ -663,7 +661,7 @@ final class Stage extends View {
             case POP: return act == FALL ? FALL.at(t, false) : POP.at(t, false);
             case BARROW_OUT: return "b01_barrow";
             case ENTER: return ENTER.at(t, false);
-            case TICKLE: return rubMs < 1200 ? SQUIRM.at(t, true) : LAUGH.at(t, true);
+            case TICKLE: return SQUIRM.at(t, true);
             case DRAG: return t < PULL_IN.total ? PULL_IN.at(t, false) : PULL_LOOP.at(t - PULL_IN.total, true);
             case EXIT: return EXIT.at(t, false);
             case IDLE: return (t % 3200) > 3040 ? "k01_blink" : "master";
@@ -714,7 +712,7 @@ final class Stage extends View {
         if (s != S.TICKLE) return;
         long now = SystemClock.uptimeMillis(); rubMs += Math.min(120, now - lastRub); lastRub = now;
     }
-    void endTickle() { if (s == S.TICKLE) play(S.ACT, rubMs < 1200 ? SQUIRM_OUT : TICKLE_OUT); }
+    void endTickle() { if (s == S.TICKLE) play(S.ACT, SQUIRM_OUT); }
 
     long pausedAt;
     void resume() { if (running) return; running = true; long now = SystemClock.uptimeMillis(); if (pausedAt > 0) t0 += now - pausedAt; last = now; postOnAnimation(tick); }

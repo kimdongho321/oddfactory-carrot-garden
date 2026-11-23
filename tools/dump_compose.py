@@ -90,7 +90,7 @@ def compose_lift(pose, char_h=320, foot_x=440, wheel_x=None, want=None):
 
 # 손잡이 번쩍 들어 쏟기: (자세, ms). 기울기는 주먹 높이로 정하고(compose_lift), 바퀴는 화면 끝에 둔 채 캐릭터가 따라 붙는다.
 # 3번 칸(가장 높이 든 순간)에 짐이 쏟아진다.
-SEQ = [("push_a", 160, None), ("lift_crouch", 220, None), ("lift_mid", 180, None), ("lift_top", 560, 50), ("lift_ease", 300, None), ("push_a", 380, None)]
+SEQ = [("push_a", 160, None), ("lift_crouch", 200, None), ("lift_up1", 180, None), ("lift_up2", 600, 40), ("lift_ease", 300, None), ("push_a", 380, None)]
 
 if __name__ == "__main__":
     meta = []
