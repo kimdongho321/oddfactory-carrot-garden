@@ -63,7 +63,9 @@ MOTIONS = [
     ("delete_fall", "삭제 → 잡초 뽑고 엉덩방아", [
         ("master", 400, True), ("wn_lower1", 160, True), ("wn_lower2", 150, True), ("wn_grab_v2", 220, True),
         ("wn_lower2", 140, True), ("wn_grab_v2", 220, True), ("wn_lower2", 140, True), ("wn_grab_v2", 220, True),
-        ("wn_pop", 160, True), ("fall_0", 180, True), ("fall_1", 520, True), ("fall_2", 900, True),
+        ("wn_pop", 120, True), ("wn_pop", 80, True, "translateY(-5%)"),
+        ("fall_0", 90, True, "translateY(-13%)"), ("fall_0", 90, True, "translateY(-16%)"), ("fall_0", 80, True, "translateY(-9%)"),
+        ("fall_1", 70, True, "scale(1.06,0.92)"), ("fall_1", 450, True), ("fall_2", 900, True),
         ("e05_rise", 220, True), ("master", 400, True)]),
     ("exit", "퇴장 (앱 끌 때)", [
         ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),

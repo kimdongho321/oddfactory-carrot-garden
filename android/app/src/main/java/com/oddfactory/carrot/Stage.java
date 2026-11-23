@@ -27,12 +27,15 @@ import java.util.Set;
 final class Stage extends View {
     // ---- 모션 정의(프레임 이름, 표시 시간 ms) ----
     static final class Clip {
-        final String[] f; final int[] ms; final float[] sy; final int total;
+        final String[] f; final int[] ms; final float[] sy, dy; final int total;
         /** ("프레임", ms, ...). "프레임@0.3"은 발 기준 세로 배율(땅에서 쑥 튀어나오는 눌림·늘어남). */
         Clip(Object... a) {
-            f = new String[a.length / 2]; ms = new int[a.length / 2]; sy = new float[a.length / 2]; int t = 0;
+            f = new String[a.length / 2]; ms = new int[a.length / 2]; sy = new float[a.length / 2]; dy = new float[a.length / 2]; int t = 0;
             for (int i = 0; i < f.length; i++) {
-                String n = (String) a[i * 2]; int k = n.indexOf('@');
+                String n = (String) a[i * 2];
+                int u = n.indexOf('^'); // "프레임^0.15" = 키의 15%만큼 위로 떠 있음
+                if (u >= 0) { dy[i] = Float.parseFloat(n.substring(u + 1)); n = n.substring(0, u); }
+                int k = n.indexOf('@');
                 f[i] = k < 0 ? n : n.substring(0, k); sy[i] = k < 0 ? 1f : Float.parseFloat(n.substring(k + 1));
                 ms[i] = (Integer) a[i * 2 + 1]; t += ms[i];
             }
@@ -55,7 +58,9 @@ final class Stage extends View {
     static final Clip GRAB = new Clip("wn_lower1", 160, "wn_lower2", 150, "wn_grab_v2", 220);
     static final Clip TUG = new Clip("wn_grab_v2", 220, "wn_lower2", 140);
     // 텃밭에서 뽑기 성공: 쑥 뽑음 → 뒤로 넘어가며 물러남 → 엉덩방아 → 주저앉아 웃음 → 일어남
-    static final Clip FALL = new Clip("wn_pop", 160, "fall_0", 180, "fall_1", 520, "fall_2", 900, "e05_rise", 220, "master", 200);
+    // 쑥 뽑힌 반동으로 살짝 솟았다가(떠 있음) 엉덩방아로 바닥에 털썩
+    static final Clip FALL = new Clip("wn_pop", 120, "wn_pop^0.05", 80, "fall_0^0.13", 90, "fall_0^0.16", 90, "fall_0^0.09", 80,
+            "fall_1@0.92", 70, "fall_1", 450, "fall_2", 900, "e05_rise", 220, "master", 200);
     static final Clip POP = new Clip("wn_pop", 700, "wn_lower2", 140, "wn_lower1", 160, "master", 200);
 
     // 시작: 새싹 → 머리 뿅 → 혀 낼름 → 손 짚고 → 일어남 / 종료: 반대로 쏙 들어감
@@ -704,7 +709,9 @@ final class Stage extends View {
         // 그림은 오른쪽을 보고 있다 → 왼쪽으로 걸을 때 좌우 반전
         boolean flip = (s == S.WALK || s == S.BARROW_OUT) && !faceRight;
         long t = SystemClock.uptimeMillis() - t0;
-        float sy = s == S.ENTER ? ENTER.sy[ENTER.idx(t, false)] : s == S.EXIT ? EXIT.sy[EXIT.idx(t, false)] : 1f;
+        float sy = s == S.ENTER ? ENTER.sy[ENTER.idx(t, false)] : s == S.EXIT ? EXIT.sy[EXIT.idx(t, false)]
+                : (s == S.POP && act == FALL) ? FALL.sy[FALL.idx(t, false)] : 1f;
+        if (s == S.POP && act == FALL) { float lift = FALL.dy[FALL.idx(t, false)] * h; top -= lift; }
         c.save();
         if (flip) c.scale(-1, 1, x, y);
         if (sy != 1f) c.scale(1, sy, x, y);
