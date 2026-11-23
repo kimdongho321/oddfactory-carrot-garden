@@ -467,8 +467,12 @@ public final class CarrotService extends AccessibilityService {
                 if (tickling) { tickling = false; stage.endTickle(); return true; }
                 if (e.getActionMasked() == MotionEvent.ACTION_CANCEL) return true;
                 long now = SystemClock.uptimeMillis();
-                if (now - lastTapAt < 300) { lastTapAt = 0; showMenu(); return true; } // 두 번 톡 → 메뉴(한 번 톡은 반응 없음)
+                if (now - lastTapAt < 300 && pendingTap != null) { // 두 번 톡 → 메뉴
+                    h.removeCallbacks(pendingTap); pendingTap = null; lastTapAt = 0; showMenu(); return true;
+                }
                 lastTapAt = now;
+                pendingTap = () -> { pendingTap = null; stage.tap(); }; // 한 번 톡 → 잠깐 움찔(간지럼)
+                h.postDelayed(pendingTap, 300);
                 return true;
         }
         return true;

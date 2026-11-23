@@ -602,9 +602,11 @@ final class Stage extends View {
     void arrive() {
         if (ext) { faceRight = true; play(S.GRAB, GRAB); return; }
         if (target != null && queue.contains(target)) { play(S.GRAB, GRAB); return; }
-        if (target == null && rnd.nextInt(3) == 0) { idle(1500 + rnd.nextInt(2000)); return; }
-        play(S.ACT, rnd.nextBoolean() ? CLAP : WATER);
+        // 걷고 나면 물뿌리기 → 박수 → 대기 순서대로 돌아가며
+        int k = actTurn++ % 3;
+        if (k == 0) play(S.ACT, WATER); else if (k == 1) play(S.ACT, CLAP); else idle(1500 + rnd.nextInt(2000));
     }
+    int actTurn;
 
     void step(long now, float dt) {
         long t = now - t0;
@@ -735,6 +737,9 @@ final class Stage extends View {
         long now = SystemClock.uptimeMillis(); rubMs += Math.min(120, now - lastRub); lastRub = now;
     }
     void endTickle() { if (s == S.TICKLE) play(S.ACT, SQUIRM_OUT); }
+    static final Clip TAP_SQUIRM = new Clip("tk_squirm_a", 150, "tk_squirm_b", 150, "tk_squirm_a", 150, "tk_squirm_b", 150, "tk_squirm_a", 160, "k01_blink", 140, "master", 200);
+    /** 한 번 톡: 잠깐 움찔(간지럼). */
+    void tap() { if (!busy() && s != S.DRAG && s != S.TICKLE) play(S.ACT, TAP_SQUIRM); }
 
     long pausedAt;
     void resume() { if (running) return; running = true; long now = SystemClock.uptimeMillis(); if (pausedAt > 0) t0 += now - pausedAt; last = now; postOnAnimation(tick); }

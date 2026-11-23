@@ -135,6 +135,7 @@ public final class MainActivity extends Activity {
         CarrotService.summon();
         // 홈 화면으로 나가서 거기서 땅에서 솟아오르는 모습을 보게 한다
         startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        moveTaskToBack(true); // 앱(텃밭 포함)은 내려간다
     }
 
     void stop() {
