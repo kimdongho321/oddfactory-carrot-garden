@@ -172,7 +172,7 @@ final class Stage extends View {
         switch (bs) {
             case WALK: {
                 float dx = tx - x, dy = ty - y, dd = (float) Math.hypot(dx, dy);
-                float spd = charH() * (dd > charH() * 2.5f ? 1.8f : 1.0f);
+                float spd = charH() * (dd > charH() * 2.5f ? 1.8f : 1.0f) * 1.75f; // 수레 밀고 가는 속도 1.75배
                 if (dd > 1) faceRight = dx > 0 || (job != null && !job.dump) && dx >= 0;
                 if (dd <= spd * dt) {
                     x = tx; y = ty; bt0 = now;
@@ -248,7 +248,7 @@ final class Stage extends View {
     String barrowFrame(long now) {
         long t = now - bt0;
         switch (bs) {
-            case WALK: return PUSH.at(t, true);
+            case WALK: return PUSH.at(t * 7 / 4, true); // 걸음도 이동 속도에 맞춰 1.75배
             case PICK: return PICK.at(t, false);
             case DUMP: return DUMP.at(t, false);
             default: return "push_a";
@@ -334,6 +334,7 @@ final class Stage extends View {
     final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
     { shade.setColor(0x40000000); }
     void outlined(Canvas c, Bitmap b, RectF r, Paint p) {
+        if (!GardenActivity.open) { c.drawBitmap(b, null, r, p); return; } // 텃밭 화면에서만
         float o = Math.max(2f, charH() * 0.014f);
         rim.setAlpha(p.getAlpha());
         for (int i = 0; i < 8; i++) {
@@ -343,6 +344,7 @@ final class Stage extends View {
         c.drawBitmap(b, null, r, p);
     }
     void footShadow(Canvas c, float fx, float fy) {
+        if (!GardenActivity.open) return;
         float h = charH(); c.drawOval(new RectF(fx - h * 0.2f, fy - h * 0.035f, fx + h * 0.2f, fy + h * 0.035f), shade);
     }
     final Random rnd = new Random();
@@ -626,7 +628,7 @@ final class Stage extends View {
                 if (!ext && target != null && goal == Goal.WANDER && !icons.containsKey(target)) { next(); break; }
                 if (!ext && goal == Goal.WANDER && t >= WALK_MAX) { target = null; arrive(); break; } // 1.5초만 걷고 그 자리에서
                 float dx = tx - x, dy = ty - y, d = (float) Math.hypot(dx, dy);
-                float sp = ext ? charH() * (d > charH() * 2.5f ? 2.4f : 1.2f) : walkSpeed(); // 뽑으러 갈 때 멀면 빨리
+                float sp = ext ? charH() * (d > charH() * 2.5f ? 2.4f : 1.2f) * 1.75f : walkSpeed(); // 삭제하러 가는 걸음 1.75배 // 뽑으러 갈 때 멀면 빨리
                 if (d <= sp * dt) { x = tx; y = ty; arrive(); }
                 else { x += dx / d * sp * dt; y += dy / d * sp * dt; }
                 break;
@@ -674,7 +676,7 @@ final class Stage extends View {
     String frameNow(long now) {
         long t = now - t0;
         switch (s) {
-            case WALK: return WALK.at(t, true);
+            case WALK: return WALK.at(ext ? t * 7 / 4 : t, true);
             case ACT: return act.at(t, false);
             case GRAB: return GRAB.at(t, false);
             case TUG: return TUG.at(t, true);
