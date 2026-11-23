@@ -66,9 +66,9 @@ import java.util.Set;
 public final class GardenActivity extends Activity {
     static volatile boolean open;
     /** 텃밭이 화면에 보이는 동안(삭제 확인 창이 위에 떠도 true): 캬롯 흰 테두리·그림자 */
-    static volatile boolean shown;
-    @Override protected void onStart() { super.onStart(); shown = true; }
-    @Override protected void onStop() { shown = false; super.onStop(); }
+    static volatile boolean onScreen;
+    @Override protected void onStart() { super.onStart(); onScreen = true; }
+    @Override protected void onStop() { onScreen = false; super.onStop(); }
     static final long DAY = 86_400_000L;
     // 햇님이 튀어나오기: 잎만 → 머리 → 반쯤 → 뿅 점프 → 착지 → 알통 자랑
     static final int[] HATNIM_MS = {160, 170, 170, 230, 180, 900};
