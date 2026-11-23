@@ -95,7 +95,7 @@ def build(out_dir, stamp):
 
     # 1) 수레로 모으기: 밀고 가서 → 평소 잡초 뽑기 → 던져 넣기, 4번
     n = 0; x = 60.0
-    pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_tug", 240), ("wn_grab_v2", 150), ("wn_tug", 260), ("wn_pop", 260)]
+    pick = [("wn_lower1", 140), ("wn_lower2", 130), ("wn_grab_v2", 200), ("wn_tug", 240), ("wn_grab_v2", 150), ("wn_tug", 260), ("wn_pop", 220), ("wn_rise", 200), ("bw2_windup", 180)]
     for k in range(4):
         tx = 40 + k * 200                     # 고른 앱 칸까지 수레를 밀고 간다
         steps = max(4, round(abs(tx - x) / 22))
@@ -105,7 +105,7 @@ def build(out_dir, stamp):
                                          ground=(items[k], xx + CHAR_H * 0.285 + (tx - xx))), 130); n += 1
         x = tx; gx = x + CHAR_H * 0.285
         for j, (f, ms) in enumerate(pick):
-            put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < len(pick) - 1 else None), ms); n += 1
+            put(f"x_col_{n}", sc.render(f, x, Y, 0, items[:k], ground=(items[k], gx) if j < len(pick) - 3 else None), ms); n += 1
         # 던지기: 손 → 짐칸 포물선 4단계
         x0, y0 = x + CHAR_H * 0.3, Y - CHAR_H * 0.55
         x1, y1 = sc.slot(x, Y, k, 0)
@@ -116,12 +116,27 @@ def build(out_dir, stamp):
         put(f"x_col_{n}", sc.render("push_a", x, Y, 0, items[:k + 1]), 250); n += 1
     motions.append({"id": "barrow_collect", "title": "여러 개 선택 → 뽑아서 수레에 싣기", "frames": out}); out = []
 
-    # 2) 수레 엎기: 캬롯이 손잡이를 들어 올려 수레째 엎는 그림 6장
-    for i, ms in enumerate((200, 220, 240, 650, 260, 700)):
-        d = load(os.path.join(FR, f"dump_{i}.png"))
-        c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255))
-        c.alpha_composite(d, ((CW - d.width) // 2, Y - d.height))
-        put(f"x_dump_{i}", c.convert("RGB"), ms)
+    # 2) 수레 엎기: 스탠딩 자세 + 바퀴 축으로 기울인 수레(dump_compose.py), 짐은 짐칸과 함께 기울다 쏟아짐
+    dm = json.load(open(os.path.join(FR, "dump.json")))
+    kk = CHAR_H / dm["charH"]
+    flies = []; stack = list(items); n = 0
+    for i, f in enumerate(dm["frames"]):
+        d = load(os.path.join(FR, f"dump_{i}.png")); d = d.resize((round(d.width * kk), round(d.height * kk)), Image.NEAREST)
+        ox = 60 - dm["frames"][0]["foot"][0] * kk + 200; oy = Y - dm["ground"] * kk if "ground" in dm else Y - f["foot"][1] * kk
+        steps = max(1, f["ms"] // 80)
+        for st in range(steps):
+            c = Image.new("RGBA", (CW, CH), (255, 255, 255, 255)); c.alpha_composite(d, (round(ox), round(oy)))
+            if i == 3 and st == 0 and stack:
+                for j, it in enumerate(stack):
+                    flies.append([it, ox + f["bin"][0] * kk + (j % 3 - 1) * 20, oy + f["bin"][1] * kk - (j // 3) * 18,
+                                  1.1 + 0.25 * j, -(0.9 + 0.2 * (j % 2)), 400 + 80 * j, 0])
+                stack = []
+            for j, it in enumerate(stack):
+                sc.item(c, it, ox + f["bin"][0] * kk + (j % 3 - 1) * 20, oy + f["bin"][1] * kk - (j // 3) * 18, ((j * 53) % 21 - 10) + f["tilt"])
+            for fl in flies:
+                dt = 0.08; fl[4] += 3.2 * dt; fl[1] += fl[3] * CHAR_H * dt; fl[2] += fl[4] * CHAR_H * dt; fl[6] += fl[5] * dt
+                sc.item(c, fl[0], fl[1], fl[2], fl[6])
+            put(f"x_dump_{n}", c.convert("RGB"), round(f["ms"] / steps)); n += 1
     motions.append({"id": "barrow_dump", "title": "삭제 끝 → 화면 끝에서 수레 엎기", "frames": out}); out = []
 
     # 3) 햇님이

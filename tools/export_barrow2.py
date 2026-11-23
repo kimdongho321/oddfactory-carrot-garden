@@ -25,5 +25,5 @@ for y in range(int(H * 0.35), int(H * 0.7)):
         if a[x, y] > 0:
             if x > best[0]: best = (x, y)
             break
-m["handX"] = best[0] - meta["footX"] - 4; m["handH"] = meta["footY"] - best[1]
+m["handX"] = best[0] - meta["footX"] - 26; m["handH"] = meta["footY"] - best[1]
 json.dump(m, open(os.path.join(A, "barrow.json"), "w"), indent=1); print(m, im.size)
