@@ -17,7 +17,7 @@ SIZE = 512
 # 땅에서 올라오는 중간 자세는 머리가 스탠딩보다 낮아야 올라오는 느낌이 난다
 DROP = {}
 # 머리 폭 자동 측정이 안 맞는 프레임은 눈으로 맞춘 배율을 쓴다(스탠딩 머리 크기 기준)
-SCALE = {"m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
+SCALE = {"fall_0": 0.83, "fall_1": 0.83, "fall_2": 0.83, "wn_pop": 0.92, "m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
 MOTIONS = [
@@ -116,6 +116,18 @@ def head_w(im):
     return max(ws) if ws else None
 
 
+# 흙먼지·팔 때문에 외곽 상자가 흔들리는 프레임: 그린 자리 그대로 두고, 머리 가운데만 스탠딩에 맞춘다
+KEEP_POS = {"fall_0", "fall_1", "fall_2"}
+
+
+def head_cx(im):
+    px = im.load()
+    xs = [x for y in range(0, int(im.height * 0.45), 3) for x in range(0, im.width, 3)
+          if px[x, y][0] > 225 and 95 < px[x, y][1] < 175 and px[x, y][2] < 90]
+    xs.sort()
+    return (xs[len(xs) // 10] + xs[len(xs) * 9 // 10]) / 2 if xs else im.width / 2
+
+
 def bbox(im):
     g = im.convert("L").point(lambda v: 255 if v < 235 else 0)
     return g.getbbox()
@@ -127,6 +139,7 @@ def main():
     mb = bbox(m)
     m_cx, m_bot = (mb[0] + mb[2]) // 2, mb[3]
     m_head = head_w(m)
+    m_hx = head_cx(m)
     data, done = [], {}
     for mid, title, seq in MOTIONS:
         frames = []
@@ -148,7 +161,9 @@ def main():
                     im.paste(big, (round((b0[0] + b0[2]) / 2 - cx), round(b0[3] - by)))
                 canvas = Image.new("RGB", (1254, 1254), "white")
                 b = bbox(im)
-                if ground and name != "master":
+                if name in KEEP_POS:
+                    dx = round(m_hx - head_cx(im)); dy = 0
+                elif ground and name != "master":
                     dx = m_cx - (b[0] + b[2]) // 2
                     dy = m_bot - b[3]
                 else:

@@ -55,7 +55,10 @@ def aligned(name, m_cx, m_bot, m_head):
         im.paste(big, (round((b0[0] + b0[2]) / 2 - cx), round(b0[3] - by)))
     b = bw.bbox(im)
     canvas = Image.new("RGB", (1254, 1254), "white")
-    canvas.paste(im, (m_cx - (b[0] + b[2]) // 2, m_bot - b[3]))
+    if name in bw.KEEP_POS:  # 흙먼지 때문에 외곽 상자가 흔들리는 프레임: 그린 자리 그대로, 머리 가운데만 맞춤
+        canvas.paste(im, (round(bw.head_cx(load("master").resize((1254, 1254))) - bw.head_cx(im)), 0))
+    else:
+        canvas.paste(im, (m_cx - (b[0] + b[2]) // 2, m_bot - b[3]))
     return canvas
 
 
