@@ -168,7 +168,8 @@ final class Stage extends View {
         switch (bs) {
             case WALK: {
                 float dx = tx - x, dy = ty - y, dd = (float) Math.hypot(dx, dy);
-                float spd = charH() * (dd > charH() * 2.5f ? 1.8f : 1.0f);
+                boolean run = job != null && job.dump; // 버리러 갈 땐 화면 끝까지 달려간다(턱에 걸려 쏟기)
+                float spd = charH() * (run ? 2.2f : dd > charH() * 2.5f ? 1.8f : 1.0f);
                 if (dd > 1) faceRight = dx > 0 || (job != null && !job.dump) && dx >= 0;
                 if (dd <= spd * dt) {
                     x = tx; y = ty; bt0 = now;
@@ -244,7 +245,7 @@ final class Stage extends View {
     String barrowFrame(long now) {
         long t = now - bt0;
         switch (bs) {
-            case WALK: return PUSH.at(t, true);
+            case WALK: return PUSH.at(job != null && job.dump ? t * 17 / 10 : t, true);
             case PICK: return PICK.at(t, false);
             case DUMP: return DUMP.at(t, false);
             default: return "push_a";

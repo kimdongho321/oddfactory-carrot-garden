@@ -27,7 +27,7 @@ FRAMES = [
     "h01_notice", "m05_harvest", "m05b_harvest_v2", "h03_popout", "k05_harvest",
     "m06_invite", "m06b_invite", "k06_invite",
     "fall_0", "fall_1", "fall_2",
-    "push_a", "push_pass_a", "push_b", "push_pass_b", "bw2_toss", "bw2_regrip", "bw2_lift", "wn_tug", "wn_rise", "bw2_windup", "dump_p1", "dump_p2", "dump_p3", "dump_p4", "dump_l1", "dump_l2",
+    "push_a", "push_pass_a", "push_b", "push_pass_b", "bw2_toss", "bw2_regrip", "bw2_lift", "wn_tug", "wn_rise", "bw2_windup", "dump_p1", "dump_p2", "dump_p3", "dump_p4", "dump_l1", "dump_l2", "crash_stumble", "crash_windmill", "crash_laugh",
 ]
 
 

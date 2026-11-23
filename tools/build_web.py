@@ -20,61 +20,47 @@ DROP = {}
 SCALE = {"fall_0": 1.0, "fall_1": 1.0, "fall_2": 1.0, "m05_harvest": 0.92, "m05b_harvest": 0.89, "k05_harvest": 0.97, "h01_notice": 0.98, "h03_popout": 0.85, "i02a_rub": 1.0, "i02_rub": 1.0}
 
 # 모션 = (이름, 설명, [(파일, 보여줄 시간 ms, 바닥 맞춤 여부)])
-MOTIONS = [
-    ("start", "앱 시작 · 땅에서 쑤욱", [
-        ("e00_sprout", 80, True, "scaleY(0.3)"), ("e00_sprout", 90, True, "scaleY(1.15)"),
-        ("e00_sprout", 80, True, "scaleY(0.92)"), ("e00_sprout", 700, True),
-        ("e01_cat", 90, True, "scaleY(0.25)"), ("e01_cat", 110, True, "scaleY(1.22)"),
-        ("e01_cat", 100, True, "scaleY(0.86)"), ("e01_cat", 90, True, "scaleY(1.07)"),
-        ("e01_cat", 80, True, "scaleY(0.97)"), ("e01_cat", 300, True),
-        ("e01_cat_L", 82, True), ("e01_cat", 62, True), ("e01_cat_R", 82, True), ("e01_cat", 62, True),
-        ("e01_cat_L", 82, True), ("e01_cat", 62, True), ("e01_cat_R", 82, True), ("e01_cat", 200, True),
-        ("e01_cat_in", 220, True), ("e02_blink", 140, True),
-        ("e03_hands", 300, True), ("e04_knee", 280, True), ("e05_rise", 240, True),
-        ("master", 1600, True)]),
-    ("idle", "대기 · 눈 깜빡임", [("master", 1600, True), ("k01_blink", 160, True)]),
-    ("snack", "사탕수수 한입 (대기 중 무작위)", [
-        ("master", 500, True), ("m03a_snack", 160, True), ("m03_snack", 220, True), ("m03b_snack", 220, True),
-        ("k03_snack", 220, True), ("k03b_chew", 180, True), ("k03_snack", 180, True), ("k03b_chew", 180, True),
-        ("k03_snack", 180, True), ("k03b_chew", 300, True), ("m03b_snack", 200, True), ("m03_snack", 200, True),
-        ("m03a_snack", 160, True)]),
-    ("pull", "볼 당김 (길게 눌러 끌기)", [
-        ("master", 400, True), ("p2_open", 160, True), ("p2_lift", 140, True),
-        ("p2_flailA", 130, True), ("p2_flailM", 100, True), ("p2_flailB", 130, True), ("p2_flailM", 100, True),
-        ("p2_flailA", 130, True), ("p2_flailM", 100, True), ("p2_flailB", 130, True), ("p2_flailM", 100, True),
-        ("p2_flailA", 130, True), ("p2_lift", 140, True), ("p2_open", 160, True)]),
-    ("water", "물뿌리개로 물 주기 (대기 중 무작위)", [
-        ("master", 500, True), ("i01a_water", 260, True), ("i01_water", 300, True), ("i01b_water", 300, True),
-        ("i01_water", 300, True), ("i01b_water", 300, True), ("i01a_water", 260, True)]),
-    ("rub", "사탕수수 볼 비비기 (대기 중 무작위)", [
-        ("master", 500, True), ("i02a_rub", 300, True), ("i03_lick", 200, True), ("i03b_lick", 200, True), ("i03_lick", 200, True), ("i03b_lick", 200, True), ("i03_lick", 200, True), ("i03b_lick", 300, True), ("i02_rub", 900, True), ("i02a_rub", 300, True)]),
-    ("harvest", "오늘의 수확 (한 번 터치)", [
-        ("master", 500, True), ("h01_notice", 220, True), ("m05_harvest", 240, True), ("m05b_harvest", 300, True),
-        ("h03_popout", 220, True), ("k05_harvest", 1400, True)]),
-    ("invite", "정원 초대 (두 번 터치 메뉴)", [
-        ("master", 500, True), ("m06_invite", 160, True), ("m06b_invite", 160, True),
-        ("k06_invite", 1100, True), ("m06b_invite", 160, True), ("m06_invite", 160, True)]),
-    ("weed", "잡초 발견 → 손으로 뽑기", [
-        ("master", 500, True), ("wn_grab", 600, True), ("wn_mid", 160, True), ("wn_pull2", 180, True),
-        ("wn_mid", 140, True), ("wn_pull2", 180, True), ("wn_mid", 140, True), ("wn_pull2", 300, True),
-        ("wn_fall", 1200, True)]),
-    ("barrow", "잡초 여러 개 정리 (수레로 옮기기)", [
-        ("master", 500, True), ("b01_barrow", 1400, True)]),
-    ("delete_fall", "삭제 → 잡초 뽑고 엉덩방아", [
-        ("master", 400, True), ("wn_lower1", 160, True), ("wn_lower2", 150, True), ("wn_grab_v2", 220, True),
-        ("wn_tug", 260, True), ("wn_grab_v2", 160, True), ("wn_tug", 260, True), ("wn_grab_v2", 160, True), ("wn_tug", 300, True),
-        ("wn_pop", 120, True), ("wn_pop", 80, True, "translateY(-5%)"),
-        ("fall_0", 90, True, "translateY(-13%)"), ("fall_0", 90, True, "translateY(-16%)"), ("fall_0", 80, True, "translateY(-9%)"),
-        ("fall_1", 70, True, "scale(1.06,0.92)"), ("fall_1", 450, True), ("fall_2", 900, True),
-        ("e05_rise", 220, True), ("master", 400, True)]),
-    ("exit", "퇴장 (앱 끌 때)", [
-        ("master", 400, True), ("e05_rise", 200, True), ("e04_knee", 200, True), ("e03_hands", 200, True),
-        ("e01_cat_in", 200, True), ("e02_blink", 120, True), ("e01_cat", 160, True),
-        ("e01_cat", 70, True, "scaleY(1.12)"), ("e01_cat", 70, True, "scaleY(0.6)"), ("e01_cat", 70, True, "scaleY(0.25)"),
-        ("e00_sprout", 300, True), ("e00_sprout", 70, True, "scaleY(1.15)"), ("e00_sprout", 70, True, "scaleY(0.4)"),
-        ("e00_sprout", 60, True, "scaleY(0.05)")]),
-]
+# 앱(Stage.java)에 실제로 들어간 모션만. "프레임@0.3" = 세로 배율, "프레임^0.1" = 키의 10%만큼 위로
+def C(*a):
+    out = []
+    for i in range(0, len(a), 2):
+        n, ms = a[i], a[i + 1]; tf = ""
+        if "^" in n: n, d = n.split("^"); tf = f"translateY(-{float(d) * 85:.1f}%)"
+        if "@" in n: n, sy = n.split("@"); tf = f"scaleY({sy})"
+        out.append((n, ms, True, tf) if tf else (n, ms, True))
+    return out
 
+
+ENTER = C("e00_sprout@0.3", 80, "e00_sprout@1.15", 90, "e00_sprout@0.92", 80, "e00_sprout", 700,
+          "e01_cat@0.25", 90, "e01_cat@1.22", 110, "e01_cat@0.86", 100, "e01_cat@1.07", 90, "e01_cat@0.97", 80, "e01_cat", 300,
+          "e01_cat_L", 82, "e01_cat", 62, "e01_cat_R", 82, "e01_cat", 62, "e01_cat_L", 82, "e01_cat", 62, "e01_cat_R", 82, "e01_cat", 200,
+          "e01_cat_in", 220, "e02_blink", 140, "e03_hands", 300, "e04_knee", 280, "e05_rise", 240, "master", 320)
+EXIT = C("master", 300, "e05_rise", 200, "e04_knee", 200, "e03_hands", 200, "e01_cat_in", 200, "e02_blink", 120,
+         "e01_cat", 160, "e01_cat@1.12", 70, "e01_cat@0.6", 70, "e01_cat@0.25", 70, "e00_sprout", 300, "e00_sprout@1.15", 70,
+         "e00_sprout@0.4", 70, "e00_sprout@0.05", 60)
+WALK = C("walk_lift_left", 150, "walk_pass_left_to_right", 110, "walk_lift_right", 150, "walk_pass_right_to_left", 110)
+CLAP = C("clap_in_v2", 137, "clap_hit_v2", 114, "clap_out_v2", 91, "clap_hit_v2", 114, "clap_out_v2", 91,
+         "clap_hit_v2", 114, "clap_out_v2", 143, "master", 171)
+WATER = C("i01a_water", 173, "i01_water", 200, "i01b_water", 200, "i01_water", 200, "i01b_water", 200,
+          "i01_water", 200, "i01b_water", 200, "i01a_water", 173, "master", 200)
+PULL = C("master", 300, "pull_right_mid", 69, "pull_right_mid2", 80, "pull_right_peak", 91) +        C("pull_right_struggle_a", 86, "pull_right_struggle_b", 86) * 4 + C("pull_right_peak", 80, "pull_right_mid", 69, "master", 114)
+HARVEST = C("master", 200, "h01_notice", 220, "m05_harvest", 240, "m05b_harvest_v2", 300, "h03_popout", 220, "k05_harvest", 1400, "master", 300)
+INVITE = C("master", 150, "m06_invite", 160, "m06b_invite", 160, "k06_invite", 1100, "m06b_invite", 160, "m06_invite", 160, "master", 200)
+DELETE = C("master", 300, "wn_lower1", 160, "wn_lower2", 150, "wn_grab_v2", 220) + C("wn_grab_v2", 200, "wn_tug", 260) * 3 +          C("wn_pop", 120, "wn_pop^0.05", 80, "fall_0^0.13", 90, "fall_0^0.16", 90, "fall_0^0.09", 80,
+           "fall_1@0.92", 70, "fall_1", 450, "fall_2", 900, "e05_rise", 220, "master", 200)
+
+MOTIONS = [
+    ("start", "앱 시작 · 땅에서 솟아오름", ENTER),
+    ("idle", "대기 · 눈 깜빡임", C("master", 1600, "k01_blink", 160)),
+    ("walk", "걷기 (홈 화면 산책)", WALK * 3),
+    ("clap", "박수 (산책 중 무작위)", CLAP),
+    ("water", "물주기 (산책 중 무작위)", WATER),
+    ("harvest", "한 번 톡 → 오늘의 수확", HARVEST),
+    ("invite", "텃밭 열기 → 정원 초대", INVITE),
+    ("pull", "꾹 눌러 끌기 → 볼 당김", PULL),
+    ("delete_fall", "앱 하나 삭제 → 잡초 뽑고 엉덩방아", DELETE),
+    ("exit", "종료 → 땅으로 쏙", EXIT),
+]
 
 def load(name):
     if name == "master":

@@ -62,6 +62,9 @@
   "dump_p3",
   "dump_p4",
   "dump_l1",
-  "dump_l2"
+  "dump_l2",
+  "crash_stumble",
+  "crash_windmill",
+  "crash_laugh"
  ]
 }

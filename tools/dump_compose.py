@@ -38,7 +38,7 @@ def rotated_barrow(bar, s, tilt):
     return big, (pad + ax, pad + ay), b
 
 
-def compose(pose, tilt, wheel_x=None, char_h=320):
+def compose(pose, tilt, wheel_x=None, char_h=320, free_x=None):
     """한 장면: 바퀴는 wheel_x(바닥)에 고정, 캐릭터는 주먹이 손잡이 끝에 오도록 놓는다.
     반환: RGBA, 캐릭터 발 위치, 짐칸 가운데(바닥쪽) 위치, 바퀴 x."""
     meta = json.load(open(os.path.join(FR, "meta.json")))
@@ -58,7 +58,7 @@ def compose(pose, tilt, wheel_x=None, char_h=320):
     W, H = 1100, 760; ground = 700
     if wheel_x is None: wheel_x = 760
     hx, hy = wheel_x + rgx, ground + rgy           # 손잡이 끝 = 주먹이 있어야 할 곳
-    foot_x = hx - (h[0] - fx)                        # 캐릭터를 옮겨 주먹을 거기에
+    foot_x = hx - (h[0] - fx) if free_x is None else free_x  # 잡고 있으면 주먹을 손잡이에, 놓쳤으면 정한 자리에
     foot_y = ground
     c = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     c.alpha_composite(big, (round(wheel_x - pax), round(ground - pay)))
@@ -66,13 +66,16 @@ def compose(pose, tilt, wheel_x=None, char_h=320):
     return c, (foot_x, foot_y), (wheel_x + bx, ground + by), wheel_x
 
 
-SEQ = [("push_a", 0, 200), ("dump_p1", 16, 200), ("dump_p2", 32, 200), ("dump_p3", 48, 380),
-       ("dump_l1", 30, 180), ("dump_l2", 14, 170), ("push_a", 0, 160), ("dump_p4", 0, 420), ("bw2_regrip", 0, 140), ("push_a", 0, 400)]
+# 달려가다 턱에 걸려 쏟기: 부딪힘 → 손잡이에 끌려 휘청 → 놓치고 허우적(수레 혼자 앞으로 엎어져 짐이 날아감, 3번 칸)
+# → 균형 잡기(수레가 되돌아옴) → 머쓱하게 웃기 → 다시 잡기. (자세, 기울기, ms, 놓쳤을 때 발 위치: 처음 잡은 자리 기준 +px)
+SEQ = [("push_a", 0, 110, None), ("crash_stumble", 14, 140, None), ("crash_windmill", 42, 120, 34),
+       ("crash_windmill", 72, 380, 46), ("crash_stumble", 26, 170, 40), ("crash_laugh", 0, 760, 12), ("bw2_regrip", 0, 150, None), ("push_a", 0, 380, None)]
 
 if __name__ == "__main__":
     meta = []
-    for i, (pose, t, ms) in enumerate(SEQ):
-        im, foot, binp, wx = compose(pose, t)
+    base = compose("push_a", 0)[1][0]
+    for i, (pose, t, ms, dx) in enumerate(SEQ):
+        im, foot, binp, wx = compose(pose, t, free_x=None if dx is None else base + dx)
         im.save(os.path.join(FR, f"dump_{i}.png"))
         meta.append({"ms": ms, "tilt": t, "foot": [round(foot[0], 1), foot[1]], "bin": [round(binp[0], 1), round(binp[1], 1)]})
     json.dump({"w": im.width, "h": im.height, "charH": 320, "frames": meta}, open(os.path.join(FR, "dump.json"), "w"), indent=1)

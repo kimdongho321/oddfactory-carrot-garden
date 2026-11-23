@@ -120,6 +120,9 @@ def build(out_dir, stamp):
     dm = json.load(open(os.path.join(FR, "dump.json")))
     kk = CHAR_H / dm["charH"]
     flies = []; stack = list(items); n = 0
+    x0 = 60 - dm["frames"][0]["foot"][0] * kk + 200 + dm["frames"][0]["foot"][0] * kk  # 부딪히는 자리(발)
+    for i in range(7):  # 화면 끝까지 달려가기(평소보다 빠른 밀기)
+        put(f"x_dump_{n}", sc.render(("push_a", "push_pass_a", "push_b", "push_pass_b")[i % 4], x0 - 34 * (7 - i), Y, 0, stack), 75); n += 1
     for i, f in enumerate(dm["frames"]):
         d = load(os.path.join(FR, f"dump_{i}.png")); d = d.resize((round(d.width * kk), round(d.height * kk)), Image.NEAREST)
         ox = 60 - dm["frames"][0]["foot"][0] * kk + 200; oy = Y - dm["ground"] * kk if "ground" in dm else Y - f["foot"][1] * kk
@@ -138,7 +141,7 @@ def build(out_dir, stamp):
                 dt = 0.08; fl[4] += 3.2 * dt; fl[1] += fl[3] * CHAR_H * dt; fl[2] += fl[4] * CHAR_H * dt; fl[6] += fl[5] * dt
                 sc.item(c, fl[0], fl[1], fl[2], fl[6])
             put(f"x_dump_{n}", c.convert("RGB"), round(f["ms"] / steps)); n += 1
-    motions.append({"id": "barrow_dump", "title": "삭제 끝 → 화면 끝에서 수레 엎기", "frames": out}); out = []
+    motions.append({"id": "barrow_dump", "title": "삭제 끝 → 달려가다 턱에 걸려 쏟기", "frames": out}); out = []
 
     # 3) 햇님이
     hat = [load(os.path.join(A, "garden", f"hatnim_{i}.png")) for i in range(6)]
