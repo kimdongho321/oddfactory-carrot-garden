@@ -138,7 +138,7 @@ def build(out_dir, stamp):
                 dt = 0.08; fl[4] += 3.2 * dt; fl[1] += fl[3] * CHAR_H * dt; fl[2] += fl[4] * CHAR_H * dt; fl[6] += fl[5] * dt
                 sc.item(c, fl[0], fl[1], fl[2], fl[6])
             put(f"x_dump_{n}", c.convert("RGB"), round(f["ms"] / steps)); n += 1
-    motions.append({"id": "barrow_dump", "title": "삭제 끝 → 손잡이 번쩍 들어 쏟기", "frames": out}); out = []
+    motions.append({"id": "barrow_dump", "title": "삭제 끝 → 손잡이 들어 털어 쏟기", "frames": out}); out = []
 
     # 3) 햇님이
     hat = [load(os.path.join(A, "garden", f"hatnim_{i}.png")) for i in range(6)]

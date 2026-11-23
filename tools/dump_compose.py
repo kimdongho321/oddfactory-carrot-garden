@@ -88,15 +88,16 @@ def compose_lift(pose, char_h=320, foot_x=440, wheel_x=None, want=None):
     return best, wx
 
 
-# 손잡이 번쩍 들어 쏟기: (자세, ms). 기울기는 주먹 높이로 정하고(compose_lift), 바퀴는 화면 끝에 둔 채 캐릭터가 따라 붙는다.
-# 3번 칸(가장 높이 든 순간)에 짐이 쏟아진다.
-SEQ = [("push_a", 160, None), ("lift_crouch", 200, None), ("lift_up1", 180, None), ("lift_up2", 600, 40), ("lift_ease", 300, None), ("push_a", 380, None)]
+# 손잡이 들어 털어 쏟기: 캬롯은 바닥에 선 자리 그대로(발 위치 고정), 주먹 높이만큼만 수레가 기울고(최대 16° 안팎)
+# 바퀴가 그만큼 살짝 구른다. 들어올린 뒤 위아래로 덜컹덜컹 털어서 짐을 쏟는다(3번 칸부터 짐이 날아감).
+SEQ = [("push_a", 160), ("lift_crouch", 200), ("lift_up1", 160), ("lift_up2", 220), ("lift_up1", 110), ("lift_up2", 130),
+       ("lift_up1", 110), ("lift_up2", 220), ("lift_ease", 300), ("push_a", 380)]
 
 if __name__ == "__main__":
     meta = []
-    for i, (pose, ms, want) in enumerate(SEQ):
-        t, up = compose_lift(pose, want=want)
-        im, foot, binp, wx = compose(pose, t, lift=up if want is not None else 0)
+    for i, (pose, ms) in enumerate(SEQ):
+        t, wx = compose_lift(pose)
+        im, foot, binp, _ = compose(pose, t, wheel_x=wx)
         im.save(os.path.join(FR, f"dump_{i}.png"))
         meta.append({"ms": ms, "tilt": t, "foot": [round(foot[0], 1), foot[1]], "bin": [round(binp[0], 1), round(binp[1], 1)]})
     for j in range(len(SEQ), 20):
