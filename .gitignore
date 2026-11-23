@@ -9,12 +9,14 @@
 art/*
 !art/final/
 !art/final/**
+art/final/*before*
 !art/seq.json
 # 작업 도구
 !tools/
 tools/*
 !tools/*.py
 !tools/*.html
+!tools/*.sh
 # Android 앱(소스·빌드 설정만)
 !android/
 android/*
@@ -31,6 +33,12 @@ android/app/*
 !android/app/proguard-rules.pro
 !android/app/src/
 !android/app/src/**
+# 삭제 테스트용 빈 앱 모듈
+!android/testapp/
+android/testapp/*
+!android/testapp/build.gradle
+!android/testapp/src/
+!android/testapp/src/**
 # 서명 키·로컬 설정은 어떤 경우에도 제외
 *.p12
 *.jks

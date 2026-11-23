@@ -23,6 +23,7 @@ import android.widget.Toast;
 /** 첫 화면: 권한 켜기(접근성·사용 기록), 캬롯 보이기/숨기기, 크기, 업데이트 확인(현재 버전 표시). */
 public final class MainActivity extends Activity {
     Typeface bold, light; float dp;
+    TestInstaller testInstaller = new TestInstaller(this);
     TextView status; Button showBtn, hideBtn;
     SharedPreferences prefs;
     com.oddfactory.update.UpdateCheck appUpdates;
@@ -61,6 +62,8 @@ public final class MainActivity extends Activity {
         l.addView(button("② 사용 기록 접근 허용(오래 안 쓴 앱 = 잡초)", 0xFFE7A13C, v -> openUsageAccess()));
 
         l.addView(button("텃밭 배경화면으로 바꾸기(앱스 화면도 텃밭)", 0xFF8BB86A, v -> askWallpaper()));
+        // 진짜 앱을 지우지 않고 삭제를 시험하도록 빈 앱 6개('테스트 잡초 1~6')를 설치
+        l.addView(button("🧪 테스트용 앱 6개 설치(삭제 시험용)", 0xFFB0A0C8, v -> testInstaller.start()));
 
         final int MIN = 60, MAX = 160;
         int cur = Math.max(MIN, Math.min(MAX, prefs.getInt("size", 100)));
@@ -157,7 +160,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onPause() { appUpdates.pause(); super.onPause(); }
-    @Override protected void onDestroy() { appUpdates.destroy(); super.onDestroy(); }
+    @Override protected void onDestroy() { appUpdates.destroy(); testInstaller.destroy(); super.onDestroy(); }
     @Override protected void onActivityResult(int request, int result, Intent data) { super.onActivityResult(request, result, data); appUpdates.onActivityResult(request); }
     @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (focused) appUpdates.onWindowFocus(); }
 }

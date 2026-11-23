@@ -1,0 +1,13 @@
+// 텃밭 삭제 테스트용 더미 앱(t1~t6). 빌드: gradlew :testapp:assembleDebug → tools/copy_testapps.sh 로 app/assets/testapks 에 복사
+plugins { id 'com.android.application' }
+android {
+ namespace 'com.oddfactory.carrottest'
+ compileSdk 35
+ defaultConfig { applicationId 'com.oddfactory.carrottest'; minSdk 26; targetSdk 35; versionCode 1; versionName '1.0' }
+ flavorDimensions 'n'
+ productFlavors {
+  (1..6).each { i -> create("t$i") { dimension 'n'; applicationIdSuffix ".t$i"; resValue 'string', 'app_name', "테스트 잡초 $i" } }
+ }
+ compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ lint { checkReleaseBuilds false; abortOnError false }
+}

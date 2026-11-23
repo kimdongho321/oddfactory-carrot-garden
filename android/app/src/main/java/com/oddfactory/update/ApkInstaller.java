@@ -54,7 +54,7 @@ final class ApkInstaller {
             return;
         }
         permissionRequest = release;
-        toast("두두 키우기의 앱 설치 허용을 켜 주세요.");
+        toast("캬롯 앱 텃밭의 앱 설치 허용을 켜 주세요.");
         try {
             activity.startActivityForResult(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.fromParts("package", activity.getPackageName(), null)), INSTALL_PERMISSION);
