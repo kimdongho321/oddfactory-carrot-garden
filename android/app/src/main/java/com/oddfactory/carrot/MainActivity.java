@@ -23,7 +23,7 @@ import android.widget.Toast;
 /** 첫 화면: 권한 켜기(접근성·사용 기록), 캬롯 보이기/숨기기, 크기, 업데이트 확인(현재 버전 표시). */
 public final class MainActivity extends Activity {
     Typeface bold, light; float dp;
-    TextView status; Button showBtn, hideBtn, everyBtn;
+    TextView status; Button showBtn, hideBtn;
     SharedPreferences prefs;
     com.oddfactory.update.UpdateCheck appUpdates;
 
@@ -60,11 +60,6 @@ public final class MainActivity extends Activity {
                 new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getPackageName())))));
         l.addView(button("② 사용 기록 접근 허용(오래 안 쓴 앱 = 잡초)", 0xFFE7A13C, v -> openUsageAccess()));
 
-        everyBtn = button("", 0xFF9DB08A, v -> {
-            prefs.edit().putBoolean("everywhere", !CarrotService.everywhere(prefs)).apply();
-            CarrotService.applySettings(); refresh();
-        });
-        l.addView(everyBtn);
         l.addView(button("텃밭 배경화면으로 바꾸기(앱스 화면도 텃밭)", 0xFF8BB86A, v -> askWallpaper()));
 
         final int MIN = 60, MAX = 160;
@@ -159,7 +154,6 @@ public final class MainActivity extends Activity {
                 + "\n사용 기록(잡초 표시): " + (usage ? "허용 ✔" : "꺼짐 — 아래 ②")
                 + "\n캬롯: " + (a11y && on ? "나와 있어요" : on ? "접근성을 켜면 나와요" : "쉬는 중"));
         showBtn.setAlpha(on ? 0.45f : 1f); hideBtn.setAlpha(on ? 1f : 0.45f);
-        everyBtn.setText("다른 앱 위에서도 보이기: " + (CarrotService.everywhere(prefs) ? "켬" : "끔(홈 화면만)"));
     }
 
     @Override protected void onPause() { appUpdates.pause(); super.onPause(); }

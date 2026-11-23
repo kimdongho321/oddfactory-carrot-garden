@@ -78,7 +78,7 @@ public final class CarrotService extends AccessibilityService {
     boolean hotseatSeen;
 
     static boolean shown(SharedPreferences p) { return p.getBoolean("shown", false); }
-    static boolean everywhere(SharedPreferences p) { return p.getBoolean("everywhere", true); }
+    static boolean everywhere(SharedPreferences p) { return true; } // 다른 앱을 켜도 캬롯은 남아 있는다(사용자 지시 2026-11-24)
     static float scaleOf(SharedPreferences p) { return p.getInt("size", 100) / 100f; }
 
     @Override protected void onServiceConnected() {
@@ -547,6 +547,15 @@ public final class CarrotService extends AccessibilityService {
 
     // ---- 첫 화면에서 부르는 것 ----
     /** 시작: 땅에서 솟아오르며 등장. */
+    /** 시작 안 한 채로 텃밭을 열면: 시작도 같이(홈으로 보내지 않고 그 자리에서 솟아오름). */
+    static void summonIfOff(SharedPreferences p) {
+        CarrotService c = current;
+        if (shown(p) || c == null || c.stage == null) return;
+        c.prefs.edit().putBoolean("shown", true).apply();
+        c.stage.enter(); // 텃밭 화면 위에서 바로 솟아오름
+        c.scan();
+    }
+
     static void summon() {
         CarrotService c = current;
         if (c == null || c.stage == null) return;

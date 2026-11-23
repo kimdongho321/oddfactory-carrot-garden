@@ -263,7 +263,8 @@ final class Stage extends View {
         c.translate(-sp.bGripX * s, -sp.bGroundY * s);
         Paint p = new Paint(px); p.setAlpha((int) (255 * barrowAlpha));
         Bitmap b = frontOnly ? sp.barrowFront : sp.barrow;
-        c.drawBitmap(b, null, new RectF(0, 0, b.getWidth() * s, b.getHeight() * s), p);
+        RectF r = new RectF(0, 0, b.getWidth() * s, b.getHeight() * s);
+        if (frontOnly) c.drawBitmap(b, null, r, p); else outlined(c, b, r, p);
         c.restore();
     }
 
@@ -282,8 +283,9 @@ final class Stage extends View {
                 float k = charH() / sp.dCharH, w = sp.dw * k, h = sp.dh * k;
                 float left = x - sp.dFootX[0] * k, top = y - sp.dGround * k;
                 Paint p = new Paint(px); p.setAlpha((int) (255 * barrowAlpha));
+                footShadow(c, x, y);
                 c.save(); if (!faceRight) c.scale(-1, 1, x, y);
-                c.drawBitmap(d, null, new RectF(left, top, left + w, top + h), p);
+                outlined(c, d, new RectF(left, top, left + w, top + h), p);
                 c.restore();
             }
             for (int j = 0; j < stack.size(); j++) { // 아직 안 쏟은 짐: 짐칸과 함께 기울어짐
@@ -306,8 +308,9 @@ final class Stage extends View {
             float cx = x;
             if (tilt != 0) { float t0x = tilt; tilt = 0; float g0 = bpt(sp.bGripX, sp.bGroundY - sp.bGripH)[0]; tilt = t0x; cx += bpt(sp.bGripX, sp.bGroundY - sp.bGripH)[0] - g0; }
             float h = charH(), k = h / sp.h, w = sp.w * k, left = cx - sp.footX * k, top = y - sp.footY * k;
+            footShadow(c, cx, y);
             c.save(); if (!faceRight) c.scale(-1, 1, cx, y);
-            c.drawBitmap(b, null, new RectF(left, top, left + w, top + h), px);
+            outlined(c, b, new RectF(left, top, left + w, top + h), px);
             c.restore();
         }
     }
@@ -325,6 +328,23 @@ final class Stage extends View {
     final Sprites sp;
     final float dp;
     final Paint px = new Paint(); // 도트 그대로(보간 없이)
+    // 텃밭처럼 비슷한 색 배경에서도 잘 보이게: 흰 테두리(스티커처럼) + 발밑 그림자
+    final Paint rim = new Paint();
+    { rim.setColorFilter(new android.graphics.PorterDuffColorFilter(0xFFFFFFFF, android.graphics.PorterDuff.Mode.SRC_IN)); }
+    final Paint shade = new Paint(Paint.ANTI_ALIAS_FLAG);
+    { shade.setColor(0x40000000); }
+    void outlined(Canvas c, Bitmap b, RectF r, Paint p) {
+        float o = Math.max(2f, charH() * 0.014f);
+        rim.setAlpha(p.getAlpha());
+        for (int i = 0; i < 8; i++) {
+            double a = Math.PI / 4 * i; float dx = (float) Math.cos(a) * o, dy = (float) Math.sin(a) * o;
+            c.drawBitmap(b, null, new RectF(r.left + dx, r.top + dy, r.right + dx, r.bottom + dy), rim);
+        }
+        c.drawBitmap(b, null, r, p);
+    }
+    void footShadow(Canvas c, float fx, float fy) {
+        float h = charH(); c.drawOval(new RectF(fx - h * 0.2f, fy - h * 0.035f, fx + h * 0.2f, fy + h * 0.035f), shade);
+    }
     final Random rnd = new Random();
     final int[] loc = new int[2];
 
@@ -756,10 +776,11 @@ final class Stage extends View {
         float sy = s == S.ENTER ? ENTER.sy[ENTER.idx(t, false)] : s == S.EXIT ? EXIT.sy[EXIT.idx(t, false)]
                 : (s == S.POP && act == FALL) ? FALL.sy[FALL.idx(t, false)] : 1f;
         if (s == S.POP && act == FALL) { float lift = FALL.dy[FALL.idx(t, false)] * h; top -= lift; }
+        if (s != S.ENTER && s != S.EXIT) footShadow(c, x, y);
         c.save();
         if (flip) c.scale(-1, 1, x, y);
         if (sy != 1f) c.scale(1, sy, x, y);
-        c.drawBitmap(b, null, new RectF(left, top, left + w, top + h), px);
+        outlined(c, b, new RectF(left, top, left + w, top + h), px);
         c.restore();
     }
 }

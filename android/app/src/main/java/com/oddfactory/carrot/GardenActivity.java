@@ -88,6 +88,7 @@ public final class GardenActivity extends Activity {
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
+        CarrotService.summonIfOff(getSharedPreferences(CarrotService.PREFS, MODE_PRIVATE));
         dp = getResources().getDisplayMetrics().density;
         try { bold = getResources().getFont(R.font.maple_bold); light = getResources().getFont(R.font.maple_light); } catch (Exception ignored) {}
         la = getSystemService(LauncherApps.class);
