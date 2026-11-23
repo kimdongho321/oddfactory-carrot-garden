@@ -560,6 +560,15 @@ public final class CarrotService extends AccessibilityService {
         c.scan();
     }
 
+    /** 홈 화면(배경화면)으로: 홈 키를 누른 것과 같게. 런처가 앱스 화면에 머물러 있었으면 한 번 더 눌러 닫는다. */
+    static boolean goHome() {
+        CarrotService c = current;
+        if (c == null) return false;
+        c.performGlobalAction(GLOBAL_ACTION_HOME);
+        c.h.postDelayed(() -> { if ("apps".equals(c.screenKey)) c.performGlobalAction(GLOBAL_ACTION_HOME); }, 600);
+        return true;
+    }
+
     static void summon() {
         CarrotService c = current;
         if (c == null || c.stage == null) return;
